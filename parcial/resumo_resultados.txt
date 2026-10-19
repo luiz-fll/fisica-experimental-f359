@@ -1,0 +1,24 @@
+ANÁLISE DO PÁSSARO BEBEDOR — INTERVALO 400–600 s
+
+MASSA
+- Número de leituras: 21
+- Massa inicial medida: 40.6950 g
+- Massa final medida: 40.6258 g
+- Variação observada (final - inicial): -0.0692 g
+- Inclinação do ajuste linear: -0.00034366 g/s
+- Taxa média de perda estimada pelo ajuste: 0.02062 g/min
+- R² do ajuste linear: 0.9696
+
+PERÍODOS ENTRE MERGULHADAS
+- Número de mergulhadas anotadas: 10
+- Número de intervalos: 9
+- Período médio: 21.133 s
+- Desvio-padrão amostral dos períodos: 1.332 s
+- Mediana: 21.500 s
+- Mínimo e máximo: 18.633 a 23.033 s
+
+NOTAS DE INTERPRETAÇÃO
+- A reta descreve a tendência geral da massa neste trecho; R² não é a incerteza da balança.
+- Oscilações nas leituras de massa foram mantidas como medidas observadas, pois o movimento do pássaro pode afetar a balança.
+- A massa nos pontos médios dos ciclos foi estimada por interpolação linear entre leituras.
+- O gráfico período × massa é exploratório; nove ciclos não bastam, por si só, para provar causalidade.
