@@ -1,47 +1,51 @@
-# Análise do pássaro bebedor
+# Dados e implementação da análise
 
-Cada subpasta de `dados/` representa uma filmagem e é analisada isoladamente. O nome da pasta não tem significado especial para o programa: é usado apenas para nomear a pasta correspondente em `resultados/`.
+A implementação final está organizada nesta pasta. Cada subpasta direta de `dados/` representa uma filmagem independente; seu nome é usado como identificador da saída, não como fonte autoritativa de metadados.
 
 ## Estrutura
 
 ```text
-analise_passarinho/
+final/
 ├── analisar.py
+├── pipeline.py
+├── periodos.py
+├── massa.py
+├── graficos.py
+├── relatorio.py
+├── teste.py
 ├── dados/
-│   └── nome_da_filmagem/
+│   └── id_da_filmagem/
 │       ├── tracker.csv
 │       ├── massa.csv
 │       ├── mergulhadas.csv
-│       └── condicoes.csv
-└── resultados/
-    └── nome_da_filmagem/
-        ├── tabelas/
-        ├── graficos/
-        └── resumo.txt
+│       ├── condicoes.csv
+│       └── arquivo.trk
+├── dados_exemplo/
+├── dados_old/
+└── resultados/  # criado pela futura execução
 ```
 
-## CSVs de entrada
+`dados/` contém nove filmagens reais, três para cada condição nominal. `dados_exemplo/` contém uma amostra de exemplo do formato dos dados, mas não será utilizada na análise. `dados_old/` é uma cópia anterior dos CSVs e não deve ser usada como entrada padrão.
 
-- `tracker.csv`: colunas `tempo_s,angulo_deg`; uma linha por medida do Tracker.
-- `massa.csv`: colunas `tempo_s,massa_g`; uma linha por leitura, com intervalos que podem variar.
-- `mergulhadas.csv`: colunas `evento_id,tempo_s`; instantes de mergulhadas reais identificados manualmente.
-- `condicoes.csv`: uma linha com `liquido,dia,temperatura_C,umidade_pct`.
+## Formato dos CSVs
 
-Exemplo de `condicoes.csv`:
+Os nomes de coluna abaixo são os que existem nos arquivos atuais:
 
-```csv
-liquido,dia,temperatura_C,umidade_pct
-alcool 70%,2026-10-24,24.5,61
-```
+- `tracker.csv`: `tempo_seg,angulo_deg` — observações de ângulo do Tracker.
+- `massa.csv`: `tempo_seg,massa_g` — leituras de massa em instantes que podem não ser igualmente espaçados.
+- `mergulhadas.csv`: `tempo_seg,angulo_deg` — eventos genuínos de mergulho selecionados manualmente. O instante do evento é `tempo_seg`; `angulo_deg` é o ângulo associado. Não há coluna `evento_id`.
+- `condicoes.csv`: `liquido,dia,temperatura_c,umidade_pct` — exatamente uma linha de metadados por filmagem.
 
-O campo `liquido` pode ser `alcool 70%`, `alcool 99%`, `agua` etc. O campo `dia` é texto livre: pode ser uma data, um número de sessão ou qualquer rótulo. Temperatura e umidade são os valores registrados para a filmagem.
+Não renomeie nem edite os CSVs originais para adaptar o software. A implementação deve ler esse formato. Não leia os arquivos .trk, utilize apenas os CSVs.
 
-## Execução prevista
+## Execução
+
+O comando planejado, após implementação da CLI, será executado a partir da raiz do repositório:
 
 ```bash
-python analisar.py --diretorio dados --saida resultados --janela 200
+python final/analisar.py --diretorio final/dados --saida final/resultados --janela 200
 ```
 
-`--janela` define a duração das janelas temporais em segundos. O programa deve analisar cada subpasta de `dados/` separadamente e criar uma pasta de mesmo nome em `resultados/`. Não haverá combinação automática de dados entre filmagens.
+**Atenção:** nesta versão, `analisar.py`, `pipeline.py`, `periodos.py`, `massa.py`, `graficos.py` e `relatorio.py` estão vazios. `teste.py` apenas reconhece e lista diretórios; não processa dados. Portanto, o comando acima documenta a interface pretendida e ainda não é executável como análise.
 
-**Nota:** `analisar.py` é, nesta etapa, apenas um ponto de entrada estrutural. A lógica estatística e os gráficos serão implementados em seguida.
+Consulte `../AGENTS.md` e `../ai-context/PROJECT.md` antes de implementar. Os dados são imutáveis e `../parcial/` está fora do escopo de alteração.

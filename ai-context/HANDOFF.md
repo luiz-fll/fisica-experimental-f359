@@ -1,37 +1,49 @@
 # Handoff — transferência de contexto
 
 ## Objetivo
-Continuar a construção do software de análise do pássaro bebedor para o relatório final, sem depender do histórico completo de conversas.
 
-## Decisões já estabelecidas
-- A análise final será reimplementada do zero segundo `ai-context/PROJECT.md`.
-- `parcial/` é apenas registro histórico do relatório parcial. Não editar, reorganizar, apagar, refatorar ou integrar seus scripts.
-- Cada subpasta de dados representa uma filmagem independente.
-- Os quatro CSVs de entrada são `tracker.csv`, `massa.csv`, `mergulhadas.csv` e `condicoes.csv`.
-- Os eventos de mergulho são selecionados manualmente; não detectar automaticamente cada oscilação.
-- Períodos são diferenças entre tempos de eventos consecutivos.
-- A massa pode ser interpolada no ponto médio de cada ciclo, sem extrapolação.
-- O ajuste principal inicial da massa é linear global, acompanhado de resíduos e diagnósticos.
-- Ajustes locais usam janelas fixas configuráveis, com padrão inicial de 200 s. Não selecionar janelas para forçar linearidade.
-- A taxa positiva de perda de massa, quando a inclinação é negativa, é \(-b\) g/s ou \(-60b\) g/min.
-- A resolução nominal de balança indicada no relatório parcial é 0,0001 g; o ruído durante o movimento pode ser maior.
-- As seis responsabilidades de módulos estão especificadas em `PROJECT.md`; a localização acordada é a raiz do projeto.
+Desenvolver o pipeline reprodutível de análise do pássaro bebedor, mantendo integridade dos dados e metodologia científica explícita.
 
-## Contexto científico
-Consultar `ai-context/EXPERIMENT.md`. A hipótese física não deve ser tratada como conclusão. O modelo relaciona aproximadamente o período ao inverso do produto entre calor latente e taxa de evaporação.
+## Regras invariáveis
 
-## Estado conhecido na preparação
-- A implementação modular final ainda não estava implementada.
-- Os dados reais disponíveis não aparentavam conter os quatro CSVs completos em cada filmagem.
-- Existe uma pasta de exemplos com os quatro CSVs.
-- Não há testes automatizados consolidados.
+- `parcial/` é histórico imutável. Não inspecionar nem alterar, salvo pedido explícito de comparação/contexto histórico.
+- Não alterar arquivos de dados em `final/dados/`, `final/dados_exemplo/` ou `final/dados_old/`.
+- A implementação final fica em `final/`; não mover módulos para a raiz.
+- Cada subpasta de `final/dados/` é uma filmagem independente.
+- Eventos de mergulho são selecionados manualmente em `mergulhadas.csv`; não detectar automaticamente cada oscilação.
+- Períodos são diferenças entre tempos consecutivos de eventos.
+- Massa pode ser interpolada no ponto médio de cada ciclo, sem extrapolação.
+- Ajuste principal inicial da massa é linear global, acompanhado de resíduos e diagnósticos.
+- Ajustes locais usam janelas fixas configuráveis, padrão inicial de 200 s; não escolher janelas para forçar linearidade.
+- Se a inclinação de massa for negativa, a taxa positiva de perda é \(-b\) g/s ou \(-60b\) g/min.
+
+## Estrutura e dados verificados
+
+- Os seis módulos planejados estão em `final/` e estão vazios.
+- `final/teste.py` é apenas um script estrutural; não é suíte de testes nem pipeline.
+- `final/dados/` contém nove filmagens reais: `agua_dia1..3`, `alcool70_dia1..3`, `alcool99_dia1..3`.
+- Todas as nove têm `tracker.csv`, `massa.csv`, `mergulhadas.csv` e `condicoes.csv`.
+- `final/dados_exemplo/filmagem_exemplo/` contém um conjunto reduzido de exemplo.
+- `final/dados_old/` contém uma cópia anterior dos CSVs e não é entrada padrão.
+- Cabeçalhos reais: `tracker.csv` = `tempo_seg,angulo_deg`; `massa.csv` = `tempo_seg,massa_g`; `mergulhadas.csv` = `tempo_seg,angulo_deg`; `condicoes.csv` = `liquido,dia,temperatura_c,umidade_pct`.
+- Não há `evento_id` em `mergulhadas.csv`; identificadores podem ser derivados em memória/saída, sem editar a fonte.
+- Não foi encontrada suíte `tests/`, manifesto de dependências ou implementação funcional.
+
+## Próxima sequência sugerida
+
+1. Definir dependências/versão de Python e contratos entre módulos.
+2. Criar testes sintéticos para cálculos científicos.
+3. Implementar leitura/validação dos CSVs existentes sem alteração de cabeçalhos.
+4. Implementar períodos/interpolação e ajustes de massa.
+5. Integrar pipeline, gráficos, relatórios e CLI.
+6. Validar ponta a ponta em filmagens reais, com diagnósticos e limitações explícitos.
 
 ## Como retomar
-1. Ler `AGENTS.md`, `CURRENT_STATE.md`, `TASKS.md`, `PROJECT.md` e `EXPERIMENT.md`.
-2. Verificar o estado real do repositório, pois este handoff pode ficar desatualizado.
-3. Não assumir que itens marcados como pendentes continuam pendentes sem inspecionar o código.
-4. Executar somente a tarefa solicitada pelo usuário e suas dependências necessárias.
-5. Atualizar `CURRENT_STATE.md`, `TASKS.md` e `LOG.md` ao concluir.
 
-## Observação
-Este arquivo é um resumo de decisões e contexto para transferência, não um registro de cada execução. Atualizá-lo apenas quando decisões, bloqueios ou contexto de continuidade mudarem significativamente.
+1. Ler `AGENTS.md`, `ai-context/CURRENT_STATE.md`, `ai-context/TASKS.md`, `ai-context/PROJECT.md` e `ai-context/EXPERIMENT.md`.
+2. Conferir novamente o estado real do código e dos dados; este handoff também pode ficar desatualizado.
+3. Executar somente a tarefa solicitada e suas dependências necessárias.
+4. Não marcar itens como concluídos sem implementação e verificação.
+5. Ao concluir, atualizar `CURRENT_STATE.md`, `TASKS.md` e acrescentar uma entrada a `LOG.md`.
+
+Este documento resume decisões e contexto de continuidade; não substitui inspeção do repositório.
