@@ -1,12 +1,12 @@
 # Estado atual do projeto
 
-> Estado verificado em 2026-11-20, após a Prioridade 3 (pipeline e saídas). Atualizar após cada execução que alterar o repositório.
+> Estado verificado em 2026-11-20, após a Prioridade 4 (qualidade, validação ponta a ponta e documentação). Atualizar após cada execução que alterar o repositório.
 
 ## Situação geral
 
-Prioridades 0 a 3 concluídas. A CLI valida as filmagens, processa cada uma válida isoladamente e grava as saídas em `final/resultados/<id>/`. Resultados já gerados para os nove conjuntos reais (99 arquivos). A Prioridade 4 (validação ponta a ponta e revisão amostral) continua pendente.
+Prioridades 0 a 4 concluídas. A CLI valida as filmagens, processa cada uma válida isoladamente e grava as saídas em `final/resultados/<id>/`. Resultados já gerados para os nove conjuntos reais (99 arquivos). Testes de estrutura, qualidade e regressão numérica dos dados reais estão em `tests/test_dados_reais.py`. A revisão amostral de `agua_dia1` e o inventário de avisos/qualidade estão em `ai-context/REVISAO_QUALIDADE.md`.
 
-Verificado: `python -m final.analisar` sobre `final/dados/` sai com código 0; nove filmagens processadas, nenhuma falha, nenhum gráfico omitido.
+Verificado: `python -m pytest` → 168 passed; `python -m final.analisar` sobre `final/dados/` sai com código 0; nove filmagens processadas, nenhuma falha, nenhum gráfico omitido.
 
 ## Estrutura de código
 
@@ -17,12 +17,12 @@ Verificado: `python -m final.analisar` sobre `final/dados/` sai com código 0; n
 - `final/graficos.py`: quatro figuras com unidades e identificação; `DadosInsuficientes` quando não há dados (Prioridade 3).
 - `final/relatorio.py`: CSVs com precisão completa, `resumo.txt` formatado, proteção contra escrita na origem (Prioridade 3).
 - `final/teste.py`: script estrutural legado, inalterado.
-- `tests/`: 165 testes.
+- `tests/`: 168 testes.
   - `test_analisar.py`: validação, lote e CLI (incluindo processamento e isolamento de falha de processamento).
   - `test_janelas.py`, `test_politicas.py`, `test_estrutura.py`.
   - `test_periodos_calculos.py`, `test_massa_calculos.py`: cálculos sintéticos.
   - `test_saidas.py`: gráficos, relatório e pipeline.
-  - `test_dados_reais.py`: leitura somente sobre `final/dados/`, com processamento em diretório temporário.
+  - `test_dados_reais.py`: estrutura, qualidade, regressão numérica e ponta a ponta sobre `final/dados/` (somente leitura / saída temporária).
 
 ## Correção dos dados de massa (agua_dia1)
 
@@ -38,7 +38,7 @@ Os valores de referência anteriores para `agua_dia1` (documentados na etapa 2) 
 
 ## Resultados gerados (valores de referência)
 
-Extraídos dos `resumo.csv` em `final/resultados/`. São saídas das funções sobre os dados atuais, não validação científica.
+Extraídos dos `resumo.csv` em `final/resultados/`. São saídas das funções sobre os dados atuais, não validação científica. Formalizados também como asserts de regressão em `tests/test_dados_reais.py`.
 
 | Filmagem | Ciclos | Sem massa interpolada | Período médio (s) | Desvio (s) | Taxa global (g/min) | R² global | Resíduo máx. (g) |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -55,7 +55,7 @@ Extraídos dos `resumo.csv` em `final/resultados/`. São saídas das funções s
 Observações para interpretação (não são conclusões):
 
 - Os ciclos sem massa interpolada têm ponto médio depois de 600 s, onde não há leitura de massa.
-- `alcool70_dia2` tem desvio de período de 10,98 s, consistente com a dúvida sobre o critério de anotação registrada em `revisao_dados_e_plano.md`.
+- `alcool70_dia2` tem desvio de período de 10,98 s, consistente com a dúvida sobre o critério de anotação registrada em `REVISAO_QUALIDADE.md`.
 - `alcool70_dia2`, `alcool70_dia3`, `alcool99_dia2` e `alcool99_dia3` têm resíduo máximo acima de 0,04 g e R² abaixo de 0,8; a qualidade do ajuste precisa ser lida caso a caso, junto com os resíduos.
 - Nenhum gráfico foi omitido nos nove conjuntos.
 
@@ -68,10 +68,17 @@ Em `final/resultados/<id>/`: `periodos.csv`, `massa_ajuste.csv`, `massa_residuos
 - `final/dados/` (exceto a correção de `agua_dia1/massa.csv`, feita pelo pesquisador), `final/dados_old/`, `final/dados_exemplo/`, `parcial/`: não modificados pelo software. Verificados por comparação com o pacote recebido.
 - `final/resultados/`: saída derivada, gerada pela execução.
 
+## Documentação de qualidade e limitações
+
+- `ai-context/REVISAO_QUALIDADE.md`: inventário estrutural, avisos de validação, revisão amostral de agua_dia1, limitações experimentais.
+- `resumo.txt` de cada filmagem lista avisos e limitações metodológicas.
+- READMEs descrevem instalação, execução, formatos e o papel dos diretórios.
+
 ## Próximas etapas recomendadas
 
-1. Prioridade 4: validação ponta a ponta de uma filmagem com revisão manual das amostras (tabelas e figuras); documentação de execução e formatos.
-2. Revisar os casos de baixo R² e os desvios altos com os resíduos, antes de qualquer interpretação.
+1. Revisão científica dos casos de baixo R² e dos desvios altos, com os gráficos de resíduos e o critério de anotação.
+2. Comparação entre líquidos (água × álcool 70% × álcool 99%) em etapa própria de análise, se desejado.
+3. Se necessário, refinar a documentação de limitações instrumentais após a revisão científica.
 
 ## Limites
 
@@ -79,4 +86,4 @@ Em `final/resultados/<id>/`: `periodos.csv`, `massa_ajuste.csv`, `massa_residuos
 
 ## Última atualização
 
-2026-11-20. Prioridade 3 (pipeline, gráficos, relatórios e CLI em lote).
+2026-11-20. Prioridade 4 (qualidade dos dados reais, validação ponta a ponta de agua_dia1, documentação e testes de regressão).

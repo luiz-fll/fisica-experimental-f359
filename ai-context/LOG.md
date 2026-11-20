@@ -132,3 +132,19 @@ Este arquivo é cumulativo e append-only. Cada execução de trabalho acrescenta
 
 ### Pendências
 - Prioridade 4: validação ponta a ponta com revisão manual e documentação de execução e formatos.
+
+## 2026-11-20 — Prioridade 4: qualidade, validação ponta a ponta e documentação
+
+### Alterações
+- `tests/test_dados_reais.py`: expandido com estrutura/qualidade (monotonia, massas positivas, contagem de ciclos sem suporte), regressão numérica dos nove conjuntos contra a tabela de referência de CURRENT_STATE, e teste ponta a ponta de agua_dia1 (amostras de ciclos, resumo, taxas, R² e gráficos).
+- Criado `ai-context/REVISAO_QUALIDADE.md`: inventário estrutural das nove filmagens, avisos de validação, revisão manual amostral de agua_dia1 (primeiro/último ciclo, ajuste global, janelas), e limitações experimentais (R² baixos, desvios, movimento na balança, condições estáticas).
+- Atualizados `TASKS.md` (Prioridade 4 concluída), `CURRENT_STATE.md`, `HANDOFF.md` e READMEs com o estado pós-P4 e a referência ao documento de revisão.
+
+### Verificações
+- `python -m pytest`: 168 passed (antes 165; +3 casos novos (estrutura, regressão, ponta a ponta) de dados reais).
+- Regressão numérica: períodos, taxas, R² e resíduos dos nove conjuntos dentro das tolerâncias documentadas.
+- Processamento de agua_dia1 em diretório temporário: 22 ciclos, taxa 0,00835 g/min, R² 0,964, resíduo máx. 0,0159 g; arquivos e gráficos presentes.
+- Dados brutos e `parcial/` não alterados.
+
+### Pendências
+- Interpretação científica dos casos de baixo R² e comparação entre líquidos (fora do escopo de implementação do pipeline).

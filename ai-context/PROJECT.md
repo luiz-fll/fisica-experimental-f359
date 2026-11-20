@@ -131,7 +131,7 @@ Implementada em `final/analisar.py` (Prioridade 1). Validação em memória; nen
 
 Mensagens identificam filmagem e arquivo. Uma filmagem inválida não interrompe o lote: falhas inesperadas também são isoladas (status `erro_inesperado`).
 
-Não há correção silenciosa. Problemas de qualidade dos dados que não são erros de formato (saltos de massa, critério de anotação, sincronização temporal) não são verificados aqui; ver `revisao_dados_e_plano.md`.
+Não há correção silenciosa. Problemas de qualidade dos dados que não são erros de formato (saltos de massa, critério de anotação, sincronização temporal) não são verificados aqui; ver `ai-context/REVISAO_QUALIDADE.md`.
 
 ## 6. Métodos
 

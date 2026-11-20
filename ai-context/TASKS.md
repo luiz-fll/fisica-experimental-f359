@@ -55,15 +55,17 @@ Este plano reflete o estado observado em 2026-11-20. O pedido explícito do usu�
 - [x] Criar testes para ajustes lineares e conversão de unidades. *(`tests/test_massa_calculos.py`)*
 - [x] Criar testes para janelas e dados insuficientes. *(`test_janelas.py`, `test_massa_calculos.py`, `test_periodos_calculos.py`)*
 - [x] Criar testes de isolamento e falha individual. *(Cobertos para a camada de validação em `tests/test_analisar.py`.)*
-- [ ] Validar estrutura/qualidade dos dados reais sem alterar os originais.
-- [ ] Validar uma filmagem real ponta a ponta e revisar amostras manualmente.
-- [ ] Documentar dependências, execução, formatos e limitações.
+- [x] Validar estrutura/qualidade dos dados reais sem alterar os originais. *(`tests/test_dados_reais.py`: monotonia, massas positivas, contagem de ciclos sem suporte, avisos documentados em `REVISAO_QUALIDADE.md`.)*
+- [x] Validar uma filmagem real ponta a ponta e revisar amostras manualmente. *(`agua_dia1`: primeiro/último ciclo, resumo, taxas e R² conferidos contra cálculo direto; registro em `ai-context/REVISAO_QUALIDADE.md`.)*
+- [x] Documentar dependências, execução, formatos e limitações. *(READMEs, `REVISAO_QUALIDADE.md`, seções de limitações no `resumo.txt` e em PROJECT.md.)*
+
+*Verificação: 168 testes passando; regressão numérica dos nove conjuntos contra a tabela de referência; amostra ponta a ponta de agua_dia1; dados brutos intactos.*
 
 ## Bloqueios e decisões pendentes
 
 - **Nenhum bloqueio de implementação.** Interpretação dos cálculos é responsabilidade do pesquisador: inclinações não negativas não são taxas (ver `PROJECT.md` 6.4).
 - **Decisões de entrada que podem ser revistas:** `--diretorio` e `--saida` têm padrão em `final/`; a janela padrão é 200 s; uma filmagem com menos de 2 mergulhos é inválida (não só sem períodos).
-- **Dados:** os problemas de qualidade (saltos de massa, critério de anotação, sincronização temporal) estão registrados em `revisao_dados_e_plano.md` e não são verificados pela validação de formato.
+- **Dados:** os problemas de qualidade (saltos de massa já corrigidos em agua_dia1, critério de anotação, sincronização temporal, R² baixos em alguns álcoois) estão registrados em `ai-context/REVISAO_QUALIDADE.md` e não são verificados pela validação de formato.
 
 ## Concluído nesta revisão documental
 
@@ -74,8 +76,8 @@ Este plano reflete o estado observado em 2026-11-20. O pedido explícito do usu�
 
 ## Em andamento
 
-Nenhuma. Prioridade 3 (pipeline e saídas) concluída; próxima etapa: Prioridade 4 (validação ponta a ponta).
+Nenhuma. Prioridades 0–4 concluídas. Próximas ações possíveis: revisão científica dos casos de baixo R² com os resíduos; comparação entre líquidos em etapa própria.
 
 ## Bloqueios
 
-Nenhum bloqueio externo identificado. O desenvolvimento está pendente, não bloqueado: os nove conjuntos em `final/dados/` possuem os quatro CSVs esperados, mas a implementação e os testes ainda não existem.
+Nenhum.
