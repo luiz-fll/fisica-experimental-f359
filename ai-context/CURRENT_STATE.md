@@ -4,49 +4,42 @@
 
 ## Situação geral
 
-A fundação está concluída: dependências declaradas, suíte de testes configurada, contratos das funções dos seis módulos definidos e a convenção de janelas temporais implementada e testada. A análise ainda não é executável: a CLI (`final/analisar.py`) retorna código 2 com aviso, e as demais funções de cálculo, gráficos e relatórios têm apenas contratos (`NotImplementedError`).
+Fundação (Prioridade 0) e entrada/validação (Prioridade 1) concluídas. A CLI valida as filmagens, identifica erros e avisos por arquivo e linha, e isola falhas no lote. Ainda não há cálculos científicos: períodos, interpolação, ajustes de massa, gráficos, gravação de resultados e pipeline são as próximas etapas.
 
-## Dependências e execução de testes
-
-- `requirements.txt`: `numpy>=1.24`, `pandas>=2.0`, `matplotlib>=3.7`. Python 3.10+ declarado.
-- `requirements-dev.txt`: inclui `requirements.txt` e `pytest>=7.0`.
-- `pytest.ini`: `testpaths = tests`, `pythonpath = final`.
-- Verificado: Python 3.12.3, numpy 2.5.4, pandas 3.0.6, matplotlib 3.11.2, pytest 9.2.0.
-- Não verificado: os limites inferiores das bibliotecas e Python 3.10 e 3.11.
+Verificado: `python -m final.analisar` sobre `final/dados/` sai com código 0; as nove filmagens são válidas, sem erros nem avisos.
 
 ## Estrutura de código
 
-- `final/periodos.py`: **implementado** — `definir_limites_janelas`, `atribuir_janela`, constantes de origem, duração e mínimos. Demais funções (`construir_ciclos`, `interpolar_massa`, `estatisticas_periodos`, `periodos_por_janela`): contrato, `NotImplementedError`.
-- `final/massa.py`: constantes de mínimo de leituras (`MIN_LEITURAS_AJUSTE = 3`, `LEITURAS_RECOMENDADAS_AJUSTE = 5`). `ajustar_linear`, `taxa_de_perda`, `ajustar_janelas`: contrato.
-- `final/analisar.py`: `ErroFilmagem` implementada; `main` retorna código 2 com aviso. `descobrir_filmagens` e `carregar_filmagem`: contrato.
+- `final/analisar.py`: **implementado** — CLI (`--diretorio`, `--saida`, `--janela`), `descobrir_filmagens`, `carregar_filmagem`, `validar_lote`, `Problema`, `ErroFilmagem`. Lê e valida; não calcula. Não grava arquivos.
+- `final/periodos.py`: **parcialmente implementado** — `definir_limites_janelas`, `atribuir_janela` (testadas). Demais funções: contrato (`NotImplementedError`).
+- `final/massa.py`: constantes de mínimo de leituras. `ajustar_linear`, `taxa_de_perda`, `ajustar_janelas`: contrato.
 - `final/pipeline.py`, `final/graficos.py`, `final/relatorio.py`: contratos documentados.
 - `final/teste.py`: script estrutural legado, inalterado.
-- `tests/`: `test_janelas.py` (fronteiras, absorção da última janela, tolerância numérica, entradas inválidas, instantes fora do domínio), `test_politicas.py` (constantes documentadas), `test_estrutura.py` (importação dos seis módulos). **35 testes passando.**
-- Imports: `from final.<modulo> import ...`. Execução: `python -m final.analisar`.
+- `tests/`: 85 testes, em `test_analisar.py` (filmagens sintéticas: cada regra de erro e aviso, leitura sem modificação, BOM/CRLF, isolamento, CLI e códigos de saída), `test_janelas.py`, `test_politicas.py`, `test_estrutura.py` e `test_dados_reais.py` (somente leitura sobre `final/dados/`).
 
-## Convenção de janelas (implementada)
+Verificações de mutação: remover a checagem de duplicatas e remover o isolamento do lote, ambas, fazem testes falharem.
 
-- Origem em 0 s; janelas `[início, fim)` de `L = 200 s` (padrão); a última absorve o resto do ensaio, `[(N-1)·L, t_fim]`, fechada à direita.
-- `N = max(1, floor(t_fim / L))`, com tolerância numérica que não cria janela começando após `t_fim`.
-- Verificação de mutação: reverter a absorção da última janela faz 5 testes falharem.
-- Com os nove conjuntos reais: 3 janelas por filmagem, com 9, 10 e 11 leituras de massa; nenhuma observação sem janela.
+## Validação dos dados (estado atual)
+
+- `final/dados/`: 9 válidas, 0 erros, 0 avisos.
+- `final/dados_old/`: 4 inválidas (`agua_dia3`, `alcool70_dia3`, `alcool99_dia1`, `alcool99_dia3`) e avisos de divergência de ângulo em `alcool70_dia1`. Consistente com os problemas já registrados nessa cópia antiga.
+- `final/dados_exemplo/`: válida, mas com tracker de apenas 0–0,067 s; mergulhos fora do intervalo do tracker. Não serve como amostra analítica.
 
 ## Dados
 
-- `final/dados/`: nove filmagens reais (água, álcool 70% e álcool 99%, três dias cada), com os quatro CSVs e o `.trk`. Não modificados nesta etapa.
-- `final/dados_exemplo/`, `final/dados_old/`, `parcial/` e `final/resultados/`: verificados como idênticos ao pacote recebido.
-- Os problemas de qualidade dos dados estão registrados em `revisao_dados_e_plano.md` e não são corrigidos automaticamente.
+- `final/dados/`, `final/dados_old/`, `final/dados_exemplo/`, `parcial/`: não modificados. Verificados por comparação com o pacote recebido.
+- Nenhum arquivo é criado em `final/resultados/` nesta etapa.
 
 ## Próximas etapas recomendadas
 
-1. Prioridade 1: `analisar.py` — descoberta, leitura e validação dos quatro CSVs, com `ErroFilmagem` e continuidade do lote.
-2. Prioridade 2: `periodos.py` (ciclos, interpolação, estatísticas) e `massa.py` (ajustes), com testes sintéticos.
-3. Prioridades 3 e 4: pipeline, gráficos, relatórios, CLI em lote e validação ponta a ponta.
+1. Prioridade 2: `periodos.py` (ciclos, interpolação no ponto médio sem extrapolação, estatísticas globais e por janela) e `massa.py` (ajuste global, resíduos, taxas, ajustes locais), com testes sintéticos.
+2. Prioridade 3: `pipeline.py`, `graficos.py`, `relatorio.py` e gravação dos resultados em `--saida`.
+3. Prioridade 4: testes de casos-limite restantes, validação ponta a ponta e documentação final de execução.
 
 ## Limites
 
-`parcial/` permanece histórico imutável. Dados brutos em `final/dados/`, `final/dados_exemplo/` e `final/dados_old/` não devem ser modificados.
+`parcial/` permanece histórico imutável. Dados brutos não devem ser modificados.
 
 ## Última atualização
 
-2026-11-20. Fundação (Prioridade 0), com última janela absorvendo o resto e imports `final.<modulo>`. Nenhuma função científica foi implementada além das janelas temporais.
+2026-11-20. Prioridade 1 (entrada e validação).

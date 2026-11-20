@@ -27,16 +27,16 @@ Desenvolver o pipeline reprodutível de análise do pássaro bebedor, mantendo i
 - `final/dados_old/` contém uma cópia anterior dos CSVs e não é entrada padrão.
 - Cabeçalhos reais: `tracker.csv` = `tempo_seg,angulo_deg`; `massa.csv` = `tempo_seg,massa_g`; `mergulhadas.csv` = `tempo_seg,angulo_deg`; `condicoes.csv` = `liquido,dia,temperatura_c,umidade_pct`.
 - Não há `evento_id` em `mergulhadas.csv`; identificadores podem ser derivados em memória/saída, sem editar a fonte.
-- Fundação concluída em 2026-11-20: `requirements.txt`, `requirements-dev.txt`, `pytest.ini` e `tests/` (35 testes). A convenção de janelas está implementada em `periodos.py`; os demais módulos têm apenas contratos (`NotImplementedError`).
+- Prioridade 1 concluída (validação): `final/analisar.py` com CLI, descoberta, leitura e validação (`tests/test_analisar.py`).
+- Fundação concluída em 2026-11-20: `requirements.txt`, `requirements-dev.txt`, `pytest.ini` e `tests/` (85 testes no total). A convenção de janelas está implementada em `periodos.py`; `periodos.py` e `massa.py` têm apenas contratos, exceto as janelas; `pipeline.py`, `graficos.py` e `relatorio.py` têm apenas contratos (`NotImplementedError`).
 - Decisões de continuidade: origem temporal 0 s; janelas `[início, fim)`; a última absorve o resto do ensaio, `[(N-1)·L, t_fim]`, com `N = max(1, floor(t_fim/L))`; mínimo de 3 leituras para ajuste (5 recomendado); mínimo de 2 mergulhos para período e 2 períodos para desvio-padrão.
 - Imports: `from final.<modulo> import ...`; execução com `python -m final.analisar`.
 
 ## Próxima sequência sugerida
 
-1. Prioridade 1: implementar leitura e validação dos CSVs em `analisar.py`, sem alterar cabeçalhos nem dados.
-2. Implementar períodos/interpolação (`periodos.py`) e ajustes de massa (`massa.py`), com testes sintéticos.
-3. Integrar pipeline, gráficos, relatórios e CLI.
-4. Validar ponta a ponta em filmagens reais, com diagnósticos e limitações explícitos.
+1. Prioridade 2: `periodos.py` (ciclos, interpolação, estatísticas) e `massa.py` (ajustes), com testes sintéticos.
+2. Prioridade 3: pipeline, gráficos, relatório e gravação em `--saida`.
+3. Prioridade 4: casos-limite restantes e validação ponta a ponta.
 
 ## Como retomar
 

@@ -71,3 +71,21 @@ Este arquivo é cumulativo e append-only. Cada execução de trabalho acrescenta
 
 ### Pendências
 - Implementação das funções de cálculo, CLI, pipeline, gráficos e relatórios.
+
+## 2026-11-20 — Prioridade 1: entrada e validação
+
+### Alterações
+- `final/analisar.py`: CLI com `--diretorio`, `--saida` e `--janela`; `descobrir_filmagens` (subpastas diretas, sem ocultas, ordenadas); `carregar_filmagem` lê cada CSV uma vez, valida cabeçalhos exatos, campos, valores numéricos e finitos, ordem e duplicatas de tempos, mínimos por arquivo, condições e relações entre arquivos; `validar_lote` isola falhas por filmagem; `Problema` e `ErroFilmagem` reportam arquivo e linha. A CLI não grava resultados.
+- Avisos (não bloqueantes): espaços ao redor de valores, mergulhos fora do intervalo do tracker ou da massa, ângulos de mergulho divergentes do tracker acima de 2°.
+- `tests/test_analisar.py` (49 casos, sintéticos, incluindo parametrizações) e `tests/test_dados_reais.py` (somente leitura). Total: 85 testes.
+- Atualizados `PROJECT.md` (5, 8, 9), `TASKS.md`, `CURRENT_STATE.md`, `HANDOFF.md` e READMEs.
+
+### Verificações
+- `python -m pytest`: 85 passed.
+- Mutação: remover checagem de duplicatas e remover isolamento do lote fazem testes falharem.
+- `python -m final.analisar` em `final/dados/`: 9 válidas, código 0, sem avisos.
+- `dados_old/` e `dados_exemplo/` validados e reportados (ver `CURRENT_STATE.md`).
+- Dados, `dados_old/`, `dados_exemplo/`, `parcial/` e `resultados/` comparados com a entrega anterior: idênticos.
+
+### Pendências
+- Prioridade 2 (cálculos) e Prioridade 3 (pipeline, gráficos, relatórios e gravação).

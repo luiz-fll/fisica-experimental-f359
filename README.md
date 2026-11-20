@@ -36,4 +36,10 @@ python -m pytest
 
 ## Execução
 
-A CLI ainda não foi implementada. A interface planejada, a executar a partir da raiz com `python -m final.analisar`, está em `ai-context/PROJECT.md`, seção 8; não execute nem anuncie o pipeline como funcional até que exista implementação e testes.
+Validação das filmagens, a partir da raiz do repositório:
+
+```bash
+python -m final.analisar --diretorio final/dados --saida final/resultados --janela 200
+```
+
+Código de saída: 0 se todas são válidas, 1 se alguma é inválida, 2 para erro de uso. A análise científica ainda não está implementada.

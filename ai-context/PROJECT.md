@@ -113,18 +113,25 @@ O conjunto atual possui nove filmagens em `final/dados/`, três por condição n
 
 ## 5. Validação
 
-Validar em memória; não criar CSVs intermediários de validação. Verificar:
-- existência e legibilidade dos quatro arquivos;
-- colunas obrigatórias, aceitando os nomes exatos acima;
-- tipos numéricos e valores finitos;
-- tempos coerentes e ordenáveis;
-- duplicatas temporais e possíveis efeitos;
-- pelo menos dois eventos para calcular períodos;
-- leituras suficientes para ajustes;
-- eventos dentro/fora do domínio temporal dos dados;
-- exatamente uma linha em `condicoes.csv`.
+Implementada em `final/analisar.py` (Prioridade 1). Validação em memória; nenhum arquivo é criado, alterado ou corrigido. O `.trk` nunca é lido. Cada CSV é lido uma única vez por filmagem.
 
-Não corrigir dados silenciosamente. Mensagens devem identificar filmagem e arquivo. Uma filmagem inválida deve ser ignorada sem interromper as demais.
+**Erros** (a filmagem é inválida e não é processada):
+- arquivo ausente, vazio, sem linhas de dados, não UTF-8 ou não legível;
+- cabeçalho diferente do esperado (exato, na mesma ordem): `tracker.csv` = `tempo_seg,angulo_deg`; `massa.csv` = `tempo_seg,massa_g`; `mergulhadas.csv` = `tempo_seg,angulo_deg`; `condicoes.csv` = `liquido,dia,temperatura_c,umidade_pct`;
+- número de campos inconsistente em alguma linha;
+- campo vazio, valor não numérico, `nan` ou `inf` (linha identificada);
+- tempos anteriores à origem (0 s), duplicados ou não ordenados (linhas identificadas);
+- `tracker.csv` com menos de 2 registros; `massa.csv` com menos de 3 leituras (`MIN_LEITURAS_AJUSTE`); `mergulhadas.csv` com menos de 2 mergulhos (`MIN_MERGULHOS_PARA_PERIODO`);
+- `condicoes.csv` com número de linhas diferente de 1, líquido ou dia vazios, temperatura ou umidade não numéricas ou não finitas, umidade fora de [0, 100].
+
+**Avisos** (a filmagem é válida, o aviso é reportado):
+- valores com espaços ao redor, aceitos sem alteração;
+- mergulhos fora do intervalo de `tracker.csv` ou de `massa.csv` (sem massa interpolada, quando fora da massa);
+- ângulo do mergulho a mais de `TOLERANCIA_ANGULO_EVENTO_GRAUS` = 2,0° do ângulo do tracker no mesmo instante.
+
+Mensagens identificam filmagem e arquivo. Uma filmagem inválida não interrompe o lote: falhas inesperadas também são isoladas (status `erro_inesperado`).
+
+Não há correção silenciosa. Problemas de qualidade dos dados que não são erros de formato (saltos de massa, critério de anotação, sincronização temporal) não são verificados aqui; ver `revisao_dados_e_plano.md`.
 
 ## 6. Métodos
 
@@ -201,19 +208,21 @@ Para cada filmagem válida, gerar `resultados/<id_da_filmagem>/`, com pelo menos
 
 Não gerar gráfico sem dados suficientes; registrar motivo no resumo. Saídas nunca devem ser gravadas sobre os dados brutos.
 
-## 8. CLI planejada
+## 8. CLI
 
-A interface inicial planejada é:
+Execução a partir da raiz do repositório:
 
 ```bash
 python -m final.analisar --diretorio final/dados --saida final/resultados --janela 200
 ```
 
-- `--diretorio`: diretório que contém subpastas de filmagem.
-- `--saida`: diretório-base dos resultados.
-- `--janela`: duração positiva da janela em segundos.
+- `--diretorio` (padrão: `final/dados`): pasta com as subpastas de filmagem.
+- `--saida` (padrão: `final/resultados`): diretório-base dos resultados; não pode estar dentro de `--diretorio`.
+- `--janela` (padrão: 200): duração positiva e finita, em segundos.
 
-Esta CLI é uma especificação, não uma funcionalidade disponível nesta versão: `analisar.py` está vazio. Não documentar execução como funcional antes de implementar e testar.
+**Estado atual:** a CLI realiza a validação de todas as filmagens e imprime uma tabela com status, quantidade de leituras, mergulhos, avisos e erros, com a identificação de arquivo e linha. Não grava resultados: o processamento científico e a gravação em `--saida` dependem das Prioridades 2 e 3.
+
+Códigos de saída: 0 se todas as filmagens são válidas; 1 se alguma é inválida; 2 para erro de uso ou de configuração (diretório inexistente, saída dentro dos dados, janela inválida, nenhuma subpasta).
 
 ## 9. Contratos entre módulos
 
@@ -227,11 +236,11 @@ Assinaturas definidas na fundação (docstrings nos módulos; `NotImplementedErr
 | `pipeline.py` | `processar_filmagem(filmagem, duracao_janela_s, pasta_saida)` | contrato |
 | `graficos.py` | `plotar_angulo_mergulhos`, `plotar_massa_ajuste`, `plotar_periodo_tempo`, `plotar_periodo_massa` | contrato |
 | `relatorio.py` | `gravar_tabelas`, `gravar_resumo_texto` | contrato |
-| `analisar.py` | `main`, `descobrir_filmagens`, `carregar_filmagem`, classe `ErroFilmagem` | `ErroFilmagem` definida; `main` retorna código 2 com aviso (CLI não implementada) |
+| `analisar.py` | `main`, `descobrir_filmagens`, `carregar_filmagem`, `validar_lote`, `Problema`, `ErroFilmagem` | implementadas e testadas (Prioridade 1) |
 
 Convenção de importação: os módulos estão em `final/`, que é um pacote Python. Importar sempre como `from final.periodos import ...`; execução pela raiz do repositório com `python -m final.analisar`. Os testes configuram a raiz do repositório em `pytest.ini` (`pythonpath = .`).
 
-Filmagem como dicionário (contrato entre `analisar.py` e `pipeline.py`): chaves `id` (str), `pasta` (Path), `tracker`, `massa`, `mergulhadas` (DataFrames com os cabeçalhos reais) e `condicoes` (dicionário de uma linha). Não há classe compartilhada, para evitar importações circulares.
+Filmagem como dicionário (contrato entre `analisar.py` e `pipeline.py`): chaves `id` (str), `pasta` (Path), `tracker`, `massa`, `mergulhadas` (DataFrames com as colunas do cabeçalho real, valores `float`), `condicoes` (dicionário com `liquido`, `dia`, `temperatura_c`, `umidade_pct`) e `avisos` (lista de `Problema`). `carregar_filmagem` levanta `ErroFilmagem(pasta, problemas)` com todos os problemas quando há erro; `Problema` tem `arquivo`, `gravidade` (`"erro"` ou `"aviso"`) e `mensagem`. `validar_lote(pastas)` devolve, para cada pasta, `id`, `pasta`, `status` (`valida`, `invalida`, `erro_inesperado`), `filmagem` e `problemas`. Não há classe compartilhada, para evitar importações circulares.
 
 - `analisar.py` lê/valida cada filmagem uma vez.
 - Dados e metadados carregados são passados explicitamente ao pipeline.

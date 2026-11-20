@@ -20,11 +20,13 @@ Este plano reflete o estado observado em 2026-11-20. O pedido explícito do usu�
 
 ## Prioridade 1 — Entrada e validação
 
-- [ ] Implementar CLI em `final/analisar.py`.
-- [ ] Implementar descoberta das subpastas de `final/dados/`.
-- [ ] Implementar leitura dos cabeçalhos reais: `tempo_seg`, `angulo_deg`, `massa_g`, `liquido`, `dia`, `temperatura_c`, `umidade_pct`.
-- [ ] Validar os quatro CSVs por filmagem sem modificá-los.
-- [ ] Garantir isolamento e continuidade do lote após erro individual.
+- [x] Implementar CLI em `final/analisar.py`. *(Validação e relatório implementados; gravação de resultados e processamento ficam nas Prioridades 2 e 3.)*
+- [x] Implementar descoberta das subpastas de `final/dados/`.
+- [x] Implementar leitura dos cabeçalhos reais: `tempo_seg`, `angulo_deg`, `massa_g`, `liquido`, `dia`, `temperatura_c`, `umidade_pct`.
+- [x] Validar os quatro CSVs por filmagem sem modificá-los.
+- [x] Garantir isolamento e continuidade do lote após erro individual.
+
+*Verificação: 85 testes passando; os nove conjuntos reais saem válidos, com código 0 e sem avisos.*
 
 ## Prioridade 2 — Cálculos científicos
 
@@ -48,15 +50,16 @@ Este plano reflete o estado observado em 2026-11-20. O pedido explícito do usu�
 - [ ] Criar testes unitários para períodos e interpolação.
 - [ ] Criar testes para ajustes lineares e conversão de unidades.
 - [ ] Criar testes para janelas e dados insuficientes.
-- [ ] Criar testes de isolamento e falha individual.
+- [x] Criar testes de isolamento e falha individual. *(Cobertos para a camada de validação em `tests/test_analisar.py`.)*
 - [ ] Validar estrutura/qualidade dos dados reais sem alterar os originais.
 - [ ] Validar uma filmagem real ponta a ponta e revisar amostras manualmente.
 - [ ] Documentar dependências, execução, formatos e limitações.
 
 ## Bloqueios e decisões pendentes
 
-- **Nenhum bloqueio de fundação.** A decisão sobre a última janela foi tomada (absorver o resto) e está implementada e testada.
-- **Dados:** nenhum bloqueio de arquivos; os problemas de dados já estão registrados em `revisao_dados_e_plano.md` e não impedem a implementação das etapas de entrada e cálculo.
+- **Nenhum bloqueio de implementação.**
+- **Decisões de entrada que podem ser revistas:** `--diretorio` e `--saida` têm padrão em `final/`; a janela padrão é 200 s; uma filmagem com menos de 2 mergulhos é inválida (não só sem períodos).
+- **Dados:** os problemas de qualidade (saltos de massa, critério de anotação, sincronização temporal) estão registrados em `revisao_dados_e_plano.md` e não são verificados pela validação de formato.
 
 ## Concluído nesta revisão documental
 
@@ -67,7 +70,7 @@ Este plano reflete o estado observado em 2026-11-20. O pedido explícito do usu�
 
 ## Em andamento
 
-Nenhuma. Fundação (Prioridade 0) concluída em 2026-11-20; próxima etapa: Prioridade 1.
+Nenhuma. Prioridade 1 (entrada e validação) concluída; próxima etapa: Prioridade 2 (cálculos).
 
 ## Bloqueios
 
