@@ -30,12 +30,14 @@ Este plano reflete o estado observado em 2026-11-20. O pedido explícito do usu�
 
 ## Prioridade 2 — Cálculos científicos
 
-- [ ] Implementar períodos entre eventos manuais de `mergulhadas.csv`.
-- [ ] Implementar interpolação da massa no ponto médio, sem extrapolação.
-- [ ] Implementar estatísticas globais e por janela dos períodos.
-- [ ] Implementar ajuste linear global da massa.
-- [ ] Implementar resíduos, taxas e diagnósticos.
-- [ ] Implementar ajustes locais por janelas fixas.
+- [x] Implementar períodos entre eventos manuais de `mergulhadas.csv`.
+- [x] Implementar interpolação da massa no ponto médio, sem extrapolação.
+- [x] Implementar estatísticas globais e por janela dos períodos.
+- [x] Implementar ajuste linear global da massa.
+- [x] Implementar resíduos, taxas e diagnósticos.
+- [x] Implementar ajustes locais por janelas fixas.
+
+*Verificação: 144 testes passando, incluindo comparações com `np.polyfit` e com a fórmula matricial do erro padrão, três mutações nas regras críticas detectadas, e uma integração somente leitura sobre os nove conjuntos reais. Dois bugs encontrados pelos testes e corrigidos: divisão por zero com duas leituras; ausência de tratamento de ciclos fora do domínio da massa.*
 
 ## Prioridade 3 — Pipeline e saídas
 
@@ -47,9 +49,9 @@ Este plano reflete o estado observado em 2026-11-20. O pedido explícito do usu�
 
 ## Prioridade 4 — Qualidade e validação
 
-- [ ] Criar testes unitários para períodos e interpolação.
-- [ ] Criar testes para ajustes lineares e conversão de unidades.
-- [ ] Criar testes para janelas e dados insuficientes.
+- [x] Criar testes unitários para períodos e interpolação. *(`tests/test_periodos_calculos.py`)*
+- [x] Criar testes para ajustes lineares e conversão de unidades. *(`tests/test_massa_calculos.py`)*
+- [x] Criar testes para janelas e dados insuficientes. *(`test_janelas.py`, `test_massa_calculos.py`, `test_periodos_calculos.py`)*
 - [x] Criar testes de isolamento e falha individual. *(Cobertos para a camada de validação em `tests/test_analisar.py`.)*
 - [ ] Validar estrutura/qualidade dos dados reais sem alterar os originais.
 - [ ] Validar uma filmagem real ponta a ponta e revisar amostras manualmente.
@@ -57,7 +59,7 @@ Este plano reflete o estado observado em 2026-11-20. O pedido explícito do usu�
 
 ## Bloqueios e decisões pendentes
 
-- **Nenhum bloqueio de implementação.**
+- **Nenhum bloqueio de implementação.** Interpretação dos cálculos é responsabilidade do pesquisador: inclinações não negativas não são taxas (ver `PROJECT.md` 6.4).
 - **Decisões de entrada que podem ser revistas:** `--diretorio` e `--saida` têm padrão em `final/`; a janela padrão é 200 s; uma filmagem com menos de 2 mergulhos é inválida (não só sem períodos).
 - **Dados:** os problemas de qualidade (saltos de massa, critério de anotação, sincronização temporal) estão registrados em `revisao_dados_e_plano.md` e não são verificados pela validação de formato.
 
@@ -70,7 +72,7 @@ Este plano reflete o estado observado em 2026-11-20. O pedido explícito do usu�
 
 ## Em andamento
 
-Nenhuma. Prioridade 1 (entrada e validação) concluída; próxima etapa: Prioridade 2 (cálculos).
+Nenhuma. Prioridade 2 (cálculos) concluída; próxima etapa: Prioridade 3 (pipeline, gráficos, relatórios e gravação).
 
 ## Bloqueios
 

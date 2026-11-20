@@ -46,7 +46,7 @@ O comando planejado, após implementação da CLI, será executado a partir da r
 python -m final.analisar --diretorio final/dados --saida final/resultados --janela 200
 ```
 
-**Estado:** `analisar.py` valida as filmagens (cabeçalhos, valores, tempos, mínimos, condições e relações entre arquivos) e imprime o relatório; não grava resultados. Os módulos `pipeline.py`, `massa.py`, `graficos.py` e `relatorio.py` têm apenas contratos, e `periodos.py` implementa a convenção de janelas. `teste.py` apenas reconhece e lista diretórios.
+**Estado:** `analisar.py` valida as filmagens e imprime o relatório. `periodos.py` e `massa.py` implementam os cálculos (ciclos, interpolação sem extrapolação, estatísticas, ajuste linear, taxas e ajustes por janela). Ainda não há pipeline, gráficos nem gravação de resultados: `pipeline.py`, `graficos.py` e `relatorio.py` são contratos. `teste.py` apenas reconhece e lista diretórios.
 
 O comando acima valida as filmagens de `--diretorio`. Para validar outro conjunto, aponte `--diretorio` para outra pasta cujas subpastas tenham os quatro CSVs.
 

@@ -108,39 +108,173 @@ def atribuir_janela(tempos: pd.Series | np.ndarray, limites: pd.DataFrame) -> pd
     return pd.Series(saida, name="janela")
 
 
-def construir_ciclos(mergulhadas: pd.DataFrame, massa: pd.DataFrame) -> pd.DataFrame:
-    """Constrói a tabela de ciclos entre mergulhos consecutivos (contrato).
+COLUNAS_CICLOS: tuple[str, ...] = (
+    "evento_inicial",
+    "evento_final",
+    "t_inicial_s",
+    "t_final_s",
+    "ponto_medio_s",
+    "periodo_s",
+    "massa_ponto_medio_g",
+    "suporte_massa",
+)
+COLUNAS_ESTATISTICAS_JANELA: tuple[str, ...] = (
+    "janela",
+    "inicio_s",
+    "fim_s",
+    "n_ciclos",
+    "media_s",
+    "desvio_padrao_s",
+    "minimo_s",
+    "maximo_s",
+    "status",
+)
 
-    A implementar: ``T_i = t_{i+1} - t_i`` para eventos consecutivos, com colunas
-    mínimas ``evento_inicial``, ``evento_final``, ``t_inicial_s``, ``t_final_s``,
-    ``ponto_medio_s``, ``periodo_s`` e ``massa_ponto_medio_g`` (ausente sem suporte).
-    """
-    raise NotImplementedError("construir_ciclos: a implementar na etapa de cálculos.")
+
+def _validar_tempos_crescentes(tempos: np.ndarray, nome: str) -> None:
+    """Levanta ``ValueError`` se os tempos não forem finitos e estritamente crescentes."""
+    if not np.all(np.isfinite(tempos)):
+        raise ValueError(f"{nome}: tempos não finitos")
+    if np.any(np.diff(tempos) <= 0):
+        raise ValueError(f"{nome}: tempos devem ser estritamente crescentes")
 
 
 def interpolar_massa(
     tempos_massa: np.ndarray, massas: np.ndarray, tempos_consulta: np.ndarray
 ) -> np.ndarray:
-    """Interpola linearmente a massa nos instantes consultados (contrato).
+    """Interpola linearmente a massa nos instantes consultados, sem extrapolação.
 
-    Instantes fora de ``[min, max]`` de ``tempos_massa`` retornam NaN (sem extrapolação).
+    Instantes fora de ``[min, max]`` de ``tempos_massa``, ou não finitos, retornam NaN.
+    A máscara de domínio é obrigatória: ``np.interp`` repete o valor da borda fora do
+    intervalo e, sem ela, produziria massas inexistentes.
     """
-    raise NotImplementedError("interpolar_massa: a implementar na etapa de cálculos.")
+    tm = np.asarray(tempos_massa, dtype=float)
+    mm = np.asarray(massas, dtype=float)
+    tc = np.asarray(tempos_consulta, dtype=float)
+    if tm.ndim != 1 or tm.shape != mm.shape:
+        raise ValueError("tempos_massa e massas devem ser vetores de mesmo tamanho")
+    if tm.size == 0:
+        raise ValueError("massa sem leituras: não há domínio para interpolar")
+    _validar_tempos_crescentes(tm, "massa")
+    if not np.all(np.isfinite(mm)):
+        raise ValueError("massa: valores não finitos")
+
+    dentro = np.isfinite(tc) & (tc >= tm[0]) & (tc <= tm[-1])
+    resultado = np.full(tc.shape, np.nan)
+    resultado[dentro] = np.interp(tc[dentro], tm, mm)
+    return resultado
+
+
+def construir_ciclos(mergulhadas: pd.DataFrame, massa: pd.DataFrame) -> pd.DataFrame:
+    """Constrói a tabela de ciclos entre mergulhos consecutivos.
+
+    Para ``n`` mergulhos em ordem, há ``n-1`` ciclos ``T_i = t_{i+1} - t_i``. Os
+    identificadores ``evento_inicial`` e ``evento_final`` são posições 1-based na ordem
+    do arquivo; não são lidos do CSV. A massa é interpolada no ponto médio do ciclo,
+    somente dentro do domínio de ``massa``; fora dele fica NaN e ``suporte_massa`` é
+    falso.
+
+    Retorna DataFrame com as colunas de ``COLUNAS_CICLOS``. Com menos de
+    ``MIN_MERGULHOS_PARA_PERIODO`` mergulhos, retorna tabela vazia com as mesmas colunas.
+
+    Levanta ``ValueError`` se os tempos dos mergulhos não forem estritamente crescentes.
+    """
+    tempos = mergulhadas["tempo_seg"].to_numpy(dtype=float)
+    if tempos.size < MIN_MERGULHOS_PARA_PERIODO:
+        return pd.DataFrame({c: pd.Series(dtype=float) for c in COLUNAS_CICLOS})
+    _validar_tempos_crescentes(tempos, "mergulhadas")
+
+    t_ini = tempos[:-1]
+    t_fim = tempos[1:]
+    ponto_medio = (t_ini + t_fim) / 2.0
+    massa_pm = interpolar_massa(
+        massa["tempo_seg"].to_numpy(dtype=float),
+        massa["massa_g"].to_numpy(dtype=float),
+        ponto_medio,
+    )
+    return pd.DataFrame(
+        {
+            "evento_inicial": np.arange(1, tempos.size),
+            "evento_final": np.arange(2, tempos.size + 1),
+            "t_inicial_s": t_ini,
+            "t_final_s": t_fim,
+            "ponto_medio_s": ponto_medio,
+            "periodo_s": t_fim - t_ini,
+            "massa_ponto_medio_g": massa_pm,
+            "suporte_massa": np.isfinite(massa_pm),
+        }
+    )
 
 
 def estatisticas_periodos(periodos_s: np.ndarray) -> dict:
-    """Estatísticas globais de períodos (contrato).
+    """Estatísticas globais de períodos.
 
-    Retorna ``n``, ``media_s``, ``desvio_padrao_s`` (amostral, ``ddof=1``), ``minimo_s``
-    e ``maximo_s``. Sem dados, ``n=0`` e valores ausentes. Com menos de
-    ``MIN_PERIODOS_PARA_DESVIO`` períodos, ``desvio_padrao_s`` é ausente.
+    Retorna ``n`` (valores finitos), ``media_s``, ``desvio_padrao_s`` (amostral,
+    ``ddof=1``), ``minimo_s`` e ``maximo_s``. Sem dados, ``n=0`` e os demais valores são
+    NaN. Com menos de ``MIN_PERIODOS_PARA_DESVIO`` períodos, o desvio é NaN, nunca zero.
     """
-    raise NotImplementedError("estatisticas_periodos: a implementar na etapa de cálculos.")
+    valores = np.asarray(periodos_s, dtype=float)
+    valores = valores[np.isfinite(valores)]
+    n = int(valores.size)
+    if n == 0:
+        return {
+            "n": 0,
+            "media_s": np.nan,
+            "desvio_padrao_s": np.nan,
+            "minimo_s": np.nan,
+            "maximo_s": np.nan,
+        }
+    desvio = float(valores.std(ddof=1)) if n >= MIN_PERIODOS_PARA_DESVIO else np.nan
+    return {
+        "n": n,
+        "media_s": float(valores.mean()),
+        "desvio_padrao_s": desvio,
+        "minimo_s": float(valores.min()),
+        "maximo_s": float(valores.max()),
+    }
+
+
+def _status_periodos(n: int) -> str:
+    if n == 0:
+        return "sem_ciclos"
+    if n < MIN_PERIODOS_PARA_DESVIO:
+        return "sem_desvio"
+    return "ok"
 
 
 def periodos_por_janela(ciclos: pd.DataFrame, limites: pd.DataFrame) -> pd.DataFrame:
-    """Agrega períodos por janela, pelo ponto médio de cada ciclo (contrato).
+    """Agrega períodos por janela, atribuindo cada ciclo pelo ponto médio.
 
-    Todas as janelas de ``limites`` aparecem na saída, mesmo sem ciclos (com ``n=0``).
+    Todas as janelas de ``limites`` aparecem na saída, mesmo sem ciclos. ``status`` é
+    ``sem_ciclos`` (n=0), ``sem_desvio`` (1 ciclo, desvio ausente) ou ``ok``.
     """
-    raise NotImplementedError("periodos_por_janela: a implementar na etapa de cálculos.")
+    if len(ciclos) > 0:
+        atribuidas = atribuir_janela(ciclos["ponto_medio_s"], limites)
+        numeros = atribuidas.to_numpy(dtype=object)
+    else:
+        numeros = np.array([], dtype=object)
+    periodos = (
+        ciclos["periodo_s"].to_numpy(dtype=float) if len(ciclos) > 0 else np.array([], dtype=float)
+    )
+
+    linhas = []
+    for _, limite in limites.iterrows():
+        mascara = np.array(
+            [pd.notna(valor) and int(valor) == int(limite["janela"]) for valor in numeros],
+            dtype=bool,
+        )
+        estat = estatisticas_periodos(periodos[mascara])
+        linhas.append(
+            {
+                "janela": int(limite["janela"]),
+                "inicio_s": float(limite["inicio_s"]),
+                "fim_s": float(limite["fim_s"]),
+                "n_ciclos": estat["n"],
+                "media_s": estat["media_s"],
+                "desvio_padrao_s": estat["desvio_padrao_s"],
+                "minimo_s": estat["minimo_s"],
+                "maximo_s": estat["maximo_s"],
+                "status": _status_periodos(estat["n"]),
+            }
+        )
+    return pd.DataFrame(linhas, columns=list(COLUNAS_ESTATISTICAS_JANELA))

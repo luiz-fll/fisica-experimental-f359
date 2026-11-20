@@ -27,6 +27,7 @@ Desenvolver o pipeline reprodutível de análise do pássaro bebedor, mantendo i
 - `final/dados_old/` contém uma cópia anterior dos CSVs e não é entrada padrão.
 - Cabeçalhos reais: `tracker.csv` = `tempo_seg,angulo_deg`; `massa.csv` = `tempo_seg,massa_g`; `mergulhadas.csv` = `tempo_seg,angulo_deg`; `condicoes.csv` = `liquido,dia,temperatura_c,umidade_pct`.
 - Não há `evento_id` em `mergulhadas.csv`; identificadores podem ser derivados em memória/saída, sem editar a fonte.
+- Prioridade 2 concluída (cálculos): `periodos.py` e `massa.py` implementados e testados (144 testes). Pipeline, gráficos e relatórios ainda são contratos.
 - Prioridade 1 concluída (validação): `final/analisar.py` com CLI, descoberta, leitura e validação (`tests/test_analisar.py`).
 - Fundação concluída em 2026-11-20: `requirements.txt`, `requirements-dev.txt`, `pytest.ini` e `tests/` (85 testes no total). A convenção de janelas está implementada em `periodos.py`; `periodos.py` e `massa.py` têm apenas contratos, exceto as janelas; `pipeline.py`, `graficos.py` e `relatorio.py` têm apenas contratos (`NotImplementedError`).
 - Decisões de continuidade: origem temporal 0 s; janelas `[início, fim)`; a última absorve o resto do ensaio, `[(N-1)·L, t_fim]`, com `N = max(1, floor(t_fim/L))`; mínimo de 3 leituras para ajuste (5 recomendado); mínimo de 2 mergulhos para período e 2 períodos para desvio-padrão.
@@ -34,9 +35,8 @@ Desenvolver o pipeline reprodutível de análise do pássaro bebedor, mantendo i
 
 ## Próxima sequência sugerida
 
-1. Prioridade 2: `periodos.py` (ciclos, interpolação, estatísticas) e `massa.py` (ajustes), com testes sintéticos.
-2. Prioridade 3: pipeline, gráficos, relatório e gravação em `--saida`.
-3. Prioridade 4: casos-limite restantes e validação ponta a ponta.
+1. Prioridade 3: `pipeline.py`, `graficos.py`, `relatorio.py`, integração em lote na CLI e gravação em `--saida`.
+2. Prioridade 4: validação ponta a ponta e revisão amostral das saídas.
 
 ## Como retomar
 

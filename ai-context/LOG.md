@@ -89,3 +89,22 @@ Este arquivo é cumulativo e append-only. Cada execução de trabalho acrescenta
 
 ### Pendências
 - Prioridade 2 (cálculos) e Prioridade 3 (pipeline, gráficos, relatórios e gravação).
+
+## 2026-11-20 — Prioridade 2: cálculos científicos
+
+### Alterações
+- `final/periodos.py`: `construir_ciclos` (ciclos entre mergulhos consecutivos, massa no ponto médio com suporte, identificadores de posição), `interpolar_massa` (sem extrapolação, máscara explícita de domínio), `estatisticas_periodos` (desvio amostral, ausente com menos de 2 períodos), `periodos_por_janela` (todas as janelas listadas; status `sem_ciclos`/`sem_desvio`/`ok`).
+- `final/massa.py`: `ajustar_linear` (MMQ, resíduos, R², erro padrão de `b`, diagnósticos `poucos_pontos`, `massa_constante`, `sem_graus_de_liberdade`), `taxa_de_perda` (taxa só para `b<0`), `ajustar_janelas` (uma linha por janela, sem misturar leituras).
+- Testes: `tests/test_periodos_calculos.py`, `tests/test_massa_calculos.py` e uma integração somente leitura em `tests/test_dados_reais.py`.
+- Atualizados `PROJECT.md` (9), `TASKS.md`, `CURRENT_STATE.md`, `HANDOFF.md` e READMEs.
+
+### Verificações
+- `python -m pytest`: 144 passed.
+- Comparações independentes: `np.polyfit` (coeficientes) e fórmula matricial (erro padrão), com dados ruidosos fixos.
+- Mutações: interpolação sem máscara de domínio, sinal da taxa invertido e desvio populacional — todas detectadas.
+- Bugs encontrados pelos testes e corrigidos: divisão por zero com 2 leituras (agora `sem_graus_de_liberdade`); tratamento de `pd.NA` na agregação por janela.
+- Nove conjuntos reais: somente leitura; cada filmagem gera n−1 ciclos e nenhum ciclo ou leitura se perde ao agregar por janela. Valores de referência em `CURRENT_STATE.md`.
+- Dados e `parcial/` não alterados.
+
+### Pendências
+- Prioridade 3 (pipeline, gráficos, relatórios e gravação em `--saida`).

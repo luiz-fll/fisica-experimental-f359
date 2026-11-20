@@ -230,13 +230,22 @@ Assinaturas definidas na fundação (docstrings nos módulos; `NotImplementedErr
 
 | Módulo | Funções | Situação |
 |---|---|---|
-| `periodos.py` | `definir_limites_janelas`, `atribuir_janela` | implementadas e testadas |
-| `periodos.py` | `construir_ciclos`, `interpolar_massa`, `estatisticas_periodos`, `periodos_por_janela` | contrato |
-| `massa.py` | `ajustar_linear`, `taxa_de_perda`, `ajustar_janelas` | contrato |
+| `periodos.py` | `definir_limites_janelas`, `atribuir_janela`, `construir_ciclos`, `interpolar_massa`, `estatisticas_periodos`, `periodos_por_janela` | implementadas e testadas (Prioridade 2) |
+| `massa.py` | `ajustar_linear`, `taxa_de_perda`, `ajustar_janelas` | implementadas e testadas (Prioridade 2) |
 | `pipeline.py` | `processar_filmagem(filmagem, duracao_janela_s, pasta_saida)` | contrato |
 | `graficos.py` | `plotar_angulo_mergulhos`, `plotar_massa_ajuste`, `plotar_periodo_tempo`, `plotar_periodo_massa` | contrato |
 | `relatorio.py` | `gravar_tabelas`, `gravar_resumo_texto` | contrato |
 | `analisar.py` | `main`, `descobrir_filmagens`, `carregar_filmagem`, `validar_lote`, `Problema`, `ErroFilmagem` | implementadas e testadas (Prioridade 1) |
+
+Retornos implementados (Prioridade 2):
+
+- `construir_ciclos(mergulhadas, massa)`: DataFrame com `evento_inicial`, `evento_final` (posições 1-based na ordem do arquivo; não lidas do CSV), `t_inicial_s`, `t_final_s`, `ponto_medio_s`, `periodo_s`, `massa_ponto_medio_g` (NaN sem suporte) e `suporte_massa`. Menos de 2 mergulhos: tabela vazia com as mesmas colunas.
+- `interpolar_massa(tempos_massa, massas, tempos_consulta)`: interpolação linear, NaN fora de `[primeira, última leitura]` ou para entradas não finitas.
+- `estatisticas_periodos(periodos_s)`: `n`, `media_s`, `desvio_padrao_s` (amostral, ausente com menos de 2 períodos), `minimo_s`, `maximo_s`.
+- `periodos_por_janela(ciclos, limites)`: uma linha por janela, com `n_ciclos` e estatísticas, e `status` = `sem_ciclos` | `sem_desvio` | `ok`.
+- `ajustar_linear(tempos_s, massas_g, min_leituras=3)`: `a_g`, `b_g_s`, `r2`, `erro_padrao_b_g_s`, `erro_padrao_residuos_g` (`sqrt(SSres/(n-2))`), `residuo_max_abs_g`, `residuos_g` (observado menos ajustado), `status` (`ok` | `leituras_insuficientes` | `sem_variacao_temporal`), `diagnosticos`. Diagnósticos: `poucos_pontos`, `massa_constante`, `sem_graus_de_liberdade`.
+- `taxa_de_perda(b_g_s)`: `tipo_taxa` = `perda` (b<0, com `taxa_g_s = -b` e `taxa_g_min = -60b`) | `inclinacao_nao_negativa` (b≥0, taxas ausentes) | `indefinido`.
+- `ajustar_janelas(massa, limites, min_leituras=3)`: uma linha por janela, com as colunas de `COLUNAS_AJUSTE_JANELA`.
 
 Convenção de importação: os módulos estão em `final/`, que é um pacote Python. Importar sempre como `from final.periodos import ...`; execução pela raiz do repositório com `python -m final.analisar`. Os testes configuram a raiz do repositório em `pytest.ini` (`pythonpath = .`).
 

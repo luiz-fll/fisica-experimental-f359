@@ -6,7 +6,7 @@ Projeto de análise experimental da relação entre o líquido externo que umede
 
 O conjunto de dados reais está em `final/dados/`: são nove filmagens (três por condição nominal: água, álcool 70% e álcool 99%). Cada uma contém `tracker.csv`, `massa.csv`, `mergulhadas.csv`, `condicoes.csv` e o arquivo de projeto do Tracker (`.trk`). Há também `final/dados_exemplo/`, com uma filmagem pequena para referência de formato, e `final/dados_old/`, uma cópia anterior dos CSVs.
 
-Os módulos da implementação estão em `final/`. Nesta versão, a fundação está concluída: contratos das funções, convenção de janelas temporais (implementada em `periodos.py`) e uma suíte de testes. As demais funções têm apenas contratos e levantam `NotImplementedError`; a CLI ainda não processa dados. `final/teste.py` é apenas um reconhecedor estrutural de diretórios, não executa análise científica.
+Os módulos da implementação estão em `final/`. Nesta versão, estão implementadas: validação das filmagens (`analisar.py`) e os cálculos de períodos, interpolação da massa, estatísticas, ajuste linear e ajustes por janela (`periodos.py`, `massa.py`), com uma suíte de testes. Pipeline, gráficos e relatórios ainda são contratos, e a CLI ainda não grava resultados. `final/teste.py` é apenas um reconhecedor estrutural de diretórios, não executa análise científica.
 
 ## Começar a trabalhar
 
@@ -42,4 +42,4 @@ Validação das filmagens, a partir da raiz do repositório:
 python -m final.analisar --diretorio final/dados --saida final/resultados --janela 200
 ```
 
-Código de saída: 0 se todas são válidas, 1 se alguma é inválida, 2 para erro de uso. A análise científica ainda não está implementada.
+Código de saída: 0 se todas são válidas, 1 se alguma é inválida, 2 para erro de uso. Os cálculos estão disponíveis como funções em `final/periodos.py` e `final/massa.py`, mas a CLI ainda não os executa nem grava resultados.
