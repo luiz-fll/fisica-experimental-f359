@@ -6,7 +6,7 @@ Projeto de análise experimental da relação entre o líquido externo que umede
 
 O conjunto de dados reais está em `final/dados/`: são nove filmagens (três por condição nominal: água, álcool 70% e álcool 99%). Cada uma contém `tracker.csv`, `massa.csv`, `mergulhadas.csv`, `condicoes.csv` e o arquivo de projeto do Tracker (`.trk`). Há também `final/dados_exemplo/`, com uma filmagem pequena para referência de formato, e `final/dados_old/`, uma cópia anterior dos CSVs.
 
-Os módulos destinados à implementação estão em `final/`. Nesta versão, `analisar.py`, `pipeline.py`, `periodos.py`, `massa.py`, `graficos.py` e `relatorio.py` estão vazios. `final/teste.py` é apenas um reconhecedor estrutural de diretórios, não executa análise científica. Ainda não existe pipeline funcional nem suíte de testes.
+Os módulos da implementação estão em `final/`. Nesta versão, a fundação está concluída: contratos das funções, convenção de janelas temporais (implementada em `periodos.py`) e uma suíte de testes. As demais funções têm apenas contratos e levantam `NotImplementedError`; a CLI ainda não processa dados. `final/teste.py` é apenas um reconhecedor estrutural de diretórios, não executa análise científica.
 
 ## Começar a trabalhar
 
@@ -23,6 +23,17 @@ A especificação técnica e o estado observado no repositório prevalecem sobre
 - `ai-context/`: especificação, contexto científico, tarefas, estado e handoff.
 - `parcial/`: registro histórico imutável. Não modificar nem usar como base de código.
 
-## Execução futura
+## Instalação e testes
 
-A CLI ainda não foi implementada. A interface planejada está documentada em `ai-context/PROJECT.md`; não execute nem anuncie o pipeline como funcional até que exista implementação e testes.
+Requer Python 3.10 ou superior (testado somente em Python 3.12.3).
+
+```bash
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements-dev.txt
+python -m pytest
+```
+
+## Execução
+
+A CLI ainda não foi implementada. A interface planejada, a executar a partir da raiz com `python -m final.analisar`, está em `ai-context/PROJECT.md`, seção 8; não execute nem anuncie o pipeline como funcional até que exista implementação e testes.

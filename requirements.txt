@@ -1,0 +1,6 @@
+# Dependências de execução do pipeline de análise. Python >= 3.10 (declarado; testado somente em 3.12.3).
+# Versões mínimas testadas no ambiente de desenvolvimento: numpy 2.5.4, pandas 3.0.6, matplotlib 3.11.2 (Python 3.12).
+# Os limites inferiores abaixo são estimativas de compatibilidade e ainda não foram verificados.
+numpy>=1.24
+pandas>=2.0
+matplotlib>=3.7

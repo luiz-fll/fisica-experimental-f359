@@ -1,0 +1,3 @@
+# Dependências para executar a suíte de testes.
+-r requirements.txt
+pytest>=7.0

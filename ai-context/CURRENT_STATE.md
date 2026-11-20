@@ -1,64 +1,52 @@
 # Estado atual do projeto
 
-> Estado verificado na revisão do pacote `fisica-experimental-f359-main` recebido em 2026-11-20. Atualizar após cada execução que alterar o repositório.
+> Estado verificado em 2026-11-20, após a etapa de fundação (Prioridade 0 de `TASKS.md`). Atualizar após cada execução que alterar o repositório.
 
 ## Situação geral
 
-O repositório contém a documentação de contexto em `ai-context/` e a área de implementação/dados em `final/`. A implementação final ainda não está desenvolvida: os seis módulos planejados estão presentes, mas vazios. O único script Python não vazio em `final/` é `teste.py`, um reconhecedor estrutural de diretórios que imprime os nomes das filmagens e parâmetros; ele não lê CSVs nem realiza análise.
+A fundação está concluída: dependências declaradas, suíte de testes configurada, contratos das funções dos seis módulos definidos e a convenção de janelas temporais implementada e testada. A análise ainda não é executável: a CLI (`final/analisar.py`) retorna código 2 com aviso, e as demais funções de cálculo, gráficos e relatórios têm apenas contratos (`NotImplementedError`).
 
-## Estrutura observada
+## Dependências e execução de testes
 
-- `final/analisar.py`, `pipeline.py`, `periodos.py`, `massa.py`, `graficos.py`, `relatorio.py`: arquivos existentes, todos com zero bytes.
-- `final/teste.py`: script estrutural de demonstração; não é teste automatizado nem CLI de análise.
-- `final/dados/`: nove filmagens reais, organizadas em três condições nominais e três dias por condição.
-- `final/dados_exemplo/filmagem_exemplo/`: um conjunto reduzido com os quatro CSVs.
-- `final/dados_old/`: cópia anterior dos CSVs das nove filmagens; não usar como entrada padrão nem confundir com a versão atual.
-- `final/`: contém arquivos `.trk` para as filmagens reais e para o exemplo.
-- Não foi encontrada pasta `tests/`, arquivo de dependências (`requirements.txt`/`pyproject.toml`) ou configuração de testes no pacote inspecionado.
+- `requirements.txt`: `numpy>=1.24`, `pandas>=2.0`, `matplotlib>=3.7`. Python 3.10+ declarado.
+- `requirements-dev.txt`: inclui `requirements.txt` e `pytest>=7.0`.
+- `pytest.ini`: `testpaths = tests`, `pythonpath = final`.
+- Verificado: Python 3.12.3, numpy 2.5.4, pandas 3.0.6, matplotlib 3.11.2, pytest 9.2.0.
+- Não verificado: os limites inferiores das bibliotecas e Python 3.10 e 3.11.
 
-## Dados atuais
+## Estrutura de código
 
-As nove pastas em `final/dados/` contêm os quatro CSVs esperados. Cada `condicoes.csv` tem uma linha. Contagens observadas:
+- `final/periodos.py`: **implementado** — `definir_limites_janelas`, `atribuir_janela`, constantes de origem, duração e mínimos. Demais funções (`construir_ciclos`, `interpolar_massa`, `estatisticas_periodos`, `periodos_por_janela`): contrato, `NotImplementedError`.
+- `final/massa.py`: constantes de mínimo de leituras (`MIN_LEITURAS_AJUSTE = 3`, `LEITURAS_RECOMENDADAS_AJUSTE = 5`). `ajustar_linear`, `taxa_de_perda`, `ajustar_janelas`: contrato.
+- `final/analisar.py`: `ErroFilmagem` implementada; `main` retorna código 2 com aviso. `descobrir_filmagens` e `carregar_filmagem`: contrato.
+- `final/pipeline.py`, `final/graficos.py`, `final/relatorio.py`: contratos documentados.
+- `final/teste.py`: script estrutural legado, inalterado.
+- `tests/`: `test_janelas.py` (fronteiras, absorção da última janela, tolerância numérica, entradas inválidas, instantes fora do domínio), `test_politicas.py` (constantes documentadas), `test_estrutura.py` (importação dos seis módulos). **35 testes passando.**
+- Imports: `from final.<modulo> import ...`. Execução: `python -m final.analisar`.
 
-| Filmagem | tracker.csv | massa.csv | mergulhadas.csv |
-|---|---:|---:|---:|
-| agua_dia1 | 18.215 | 30 | 23 |
-| agua_dia2 | 18.505 | 30 | 26 |
-| agua_dia3 | 18.180 | 30 | 26 |
-| alcool70_dia1 | 18.215 | 30 | 57 |
-| alcool70_dia2 | 18.084 | 30 | 21 |
-| alcool70_dia3 | 17.824 | 30 | 37 |
-| alcool99_dia1 | 18.043 | 30 | 36 |
-| alcool99_dia2 | 18.296 | 30 | 34 |
-| alcool99_dia3 | 17.691 | 30 | 32 |
+## Convenção de janelas (implementada)
 
-Os cabeçalhos reais diferem dos exemplos da documentação anterior:
-- `tracker.csv`: `tempo_seg,angulo_deg`.
-- `massa.csv`: `tempo_seg,massa_g`.
-- `mergulhadas.csv`: `tempo_seg,angulo_deg` (não há `evento_id`).
-- `condicoes.csv`: `liquido,dia,temperatura_c,umidade_pct` (sufixo `c` minúsculo).
+- Origem em 0 s; janelas `[início, fim)` de `L = 200 s` (padrão); a última absorve o resto do ensaio, `[(N-1)·L, t_fim]`, fechada à direita.
+- `N = max(1, floor(t_fim / L))`, com tolerância numérica que não cria janela começando após `t_fim`.
+- Verificação de mutação: reverter a absorção da última janela faz 5 testes falharem.
+- Com os nove conjuntos reais: 3 janelas por filmagem, com 9, 10 e 11 leituras de massa; nenhuma observação sem janela.
 
-O exemplo em `final/dados_exemplo/filmagem_exemplo/` também usa `tempo_seg` e `temperatura_c`; seu `mergulhadas.csv` contém `tempo_seg,angulo_deg`. A documentação foi alinhada a esses cabeçalhos observados. As contagens acima são inventário, não validação científica nem garantia de ausência de problemas internos nos dados.
+## Dados
 
-## Estado de implementação
-
-- CLI de análise: não implementada.
-- Descoberta, leitura e validação de CSVs: não implementadas.
-- Cálculo de períodos/interpolação: não implementado.
-- Ajustes globais/locais de massa: não implementados.
-- Geração de gráficos e relatórios: não implementada.
-- Testes automatizados: inexistentes no pacote inspecionado.
-- Execução ponta a ponta: não disponível.
+- `final/dados/`: nove filmagens reais (água, álcool 70% e álcool 99%, três dias cada), com os quatro CSVs e o `.trk`. Não modificados nesta etapa.
+- `final/dados_exemplo/`, `final/dados_old/`, `parcial/` e `final/resultados/`: verificados como idênticos ao pacote recebido.
+- Os problemas de qualidade dos dados estão registrados em `revisao_dados_e_plano.md` e não são corrigidos automaticamente.
 
 ## Próximas etapas recomendadas
 
-1. Definir dependências e versão mínima de Python; criar ambiente e testes.
-2. Fechar os contratos de dados/funções entre módulos.
-3. Implementar leitura/validação compatível com os cabeçalhos reais sem editar os CSVs.
-4. Implementar e testar períodos/interpolação e ajustes de massa com dados sintéticos.
-5. Integrar pipeline, gráficos, relatórios e CLI.
-6. Executar validação ponta a ponta em filmagens reais, registrando limitações e resultados.
+1. Prioridade 1: `analisar.py` — descoberta, leitura e validação dos quatro CSVs, com `ErroFilmagem` e continuidade do lote.
+2. Prioridade 2: `periodos.py` (ciclos, interpolação, estatísticas) e `massa.py` (ajustes), com testes sintéticos.
+3. Prioridades 3 e 4: pipeline, gráficos, relatórios, CLI em lote e validação ponta a ponta.
 
 ## Limites
 
-`parcial/` permanece histórico imutável e fora do escopo de inspeção/alteração, salvo solicitação histórica explícita. Dados brutos em `final/dados/`, `final/dados_exemplo/` e `final/dados_old/` não devem ser modificados.
+`parcial/` permanece histórico imutável. Dados brutos em `final/dados/`, `final/dados_exemplo/` e `final/dados_old/` não devem ser modificados.
+
+## Última atualização
+
+2026-11-20. Fundação (Prioridade 0), com última janela absorvendo o resto e imports `final.<modulo>`. Nenhuma função científica foi implementada além das janelas temporais.

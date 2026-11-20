@@ -12,11 +12,11 @@ Este plano reflete o estado observado em 2026-11-20. O pedido explícito do usu�
 
 ## Prioridade 0 — Fundação do projeto
 
-- [ ] Definir versão mínima de Python e dependências; criar `requirements.txt` ou `pyproject.toml`.
-- [ ] Definir contratos de entrada/saída e funções dos seis módulos em `final/`.
-- [ ] Definir convenção de limites das janelas.
-- [ ] Definir mínimo de pontos para ajustes locais e política de janelas insuficientes.
-- [ ] Criar estrutura `tests/` e configurar execução de testes.
+- [x] Definir versão mínima de Python e dependências; criar `requirements.txt` ou `pyproject.toml`. *(Python 3.10+ declarado; desenvolvido e testado somente em 3.12.3. Versões mínimas das bibliotecas são estimativas não verificadas. Ver `requirements.txt`.)*
+- [x] Definir contratos de entrada/saída e funções dos seis módulos em `final/`. *(Assinaturas e docstrings; implementação pendente, ver `PROJECT.md` seção 9.)*
+- [x] Definir convenção de limites das janelas. *(Implementada em `final/periodos.py`; a última janela absorve o resto do ensaio, decisão do pesquisador, ver `PROJECT.md` 6.3.)*
+- [x] Definir mínimo de pontos para ajustes locais e política de janelas insuficientes. *(Constantes em `massa.py` e `periodos.py`. A aplicação da política depende da implementação das funções de ajuste.)*
+- [x] Criar estrutura `tests/` e configurar execução de testes. *(`pytest.ini`, 35 testes passando.)*
 
 ## Prioridade 1 — Entrada e validação
 
@@ -53,6 +53,11 @@ Este plano reflete o estado observado em 2026-11-20. O pedido explícito do usu�
 - [ ] Validar uma filmagem real ponta a ponta e revisar amostras manualmente.
 - [ ] Documentar dependências, execução, formatos e limitações.
 
+## Bloqueios e decisões pendentes
+
+- **Nenhum bloqueio de fundação.** A decisão sobre a última janela foi tomada (absorver o resto) e está implementada e testada.
+- **Dados:** nenhum bloqueio de arquivos; os problemas de dados já estão registrados em `revisao_dados_e_plano.md` e não impedem a implementação das etapas de entrada e cálculo.
+
 ## Concluído nesta revisão documental
 
 - [x] Inventariar a estrutura atual e alinhar a documentação aos caminhos reais em `final/`.
@@ -62,7 +67,7 @@ Este plano reflete o estado observado em 2026-11-20. O pedido explícito do usu�
 
 ## Em andamento
 
-Nenhuma tarefa de implementação registrada.
+Nenhuma. Fundação (Prioridade 0) concluída em 2026-11-20; próxima etapa: Prioridade 1.
 
 ## Bloqueios
 

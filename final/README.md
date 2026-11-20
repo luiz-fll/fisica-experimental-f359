@@ -43,9 +43,19 @@ Não renomeie nem edite os CSVs originais para adaptar o software. A implementa�
 O comando planejado, após implementação da CLI, será executado a partir da raiz do repositório:
 
 ```bash
-python final/analisar.py --diretorio final/dados --saida final/resultados --janela 200
+python -m final.analisar --diretorio final/dados --saida final/resultados --janela 200
 ```
 
-**Atenção:** nesta versão, `analisar.py`, `pipeline.py`, `periodos.py`, `massa.py`, `graficos.py` e `relatorio.py` estão vazios. `teste.py` apenas reconhece e lista diretórios; não processa dados. Portanto, o comando acima documenta a interface pretendida e ainda não é executável como análise.
+**Atenção:** nesta versão, a CLI (`analisar.py`) ainda não está implementada: ela retorna código 2 com aviso. Os módulos `pipeline.py`, `massa.py`, `graficos.py` e `relatorio.py` contêm apenas contratos; `periodos.py` implementa a convenção de janelas. `teste.py` apenas reconhece e lista diretórios. O comando acima documenta a interface pretendida e ainda não é executável como análise.
+
+## Testes
+
+A partir da raiz do repositório, com as dependências de desenvolvimento instaladas (`pip install -r requirements-dev.txt`). Os módulos são importados como `final.<modulo>`:
+
+```bash
+python -m pytest
+```
+
+Os testes usam dados sintéticos e não leem `dados/`.
 
 Consulte `../AGENTS.md` e `../ai-context/PROJECT.md` antes de implementar. Os dados são imutáveis e `../parcial/` está fora do escopo de alteração.

@@ -158,6 +158,16 @@ Quando houver ciclos: quantidade, média, desvio-padrão amostral, mínimo e má
 - Não escolher janelas após observar os resultados para forçar linearidade.
 - Janelas sem dados suficientes devem ter diagnóstico ou ser omitidas por regra documentada.
 
+**Convenção adotada (definida na fundação; implementada em `final/periodos.definir_limites_janelas` e `final/periodos.atribuir_janela`):**
+
+- Origem fixa em 0 s, referência comum dos `tempo_seg`. Não é reancorada por arquivo.
+- Janelas `[início, fim)` de duração `L` (padrão 200 s), exceto a última.
+- Número de janelas: `N = max(1, floor(t_fim / L))`, em que `t_fim` é o maior instante de `massa.csv` ou `mergulhadas.csv` da própria filmagem. Não é escolhido a partir dos resultados.
+- A última janela absorve o resto do ensaio: `[(N-1)·L, t_fim]`, fechada à direita. Ela tem duração entre `L` e `2L`. Assim, um resto de poucos milissegundos após 600 s não gera janela própria.
+- Cada ciclo pertence à janela que contém seu ponto médio; instantes fora de `[0, t_fim]`, negativos ou não finitos não pertencem a nenhuma janela.
+- Janelas numeradas de 1 a N e sempre listadas nas tabelas, mesmo quando vazias ou insuficientes.
+- Decisão tomada pelo pesquisador (2026-11-20): a última janela absorve o resto (alternativa à convenção `ceil`, que criava janelas com uma única leitura). Com os nove conjuntos reais, obtém-se 3 janelas com 9, 10 e 11 leituras de massa cada.
+
 Para cada janela, reportar quantidade de leituras, inclinação, taxa em g/min quando aplicável, R² e diagnóstico da massa; para períodos, quantidade, média, desvio-padrão, mínimo e máximo quando disponíveis.
 
 ### 6.4 Ajuste de massa
@@ -174,7 +184,7 @@ m(t)=a+bt
 r=-b\ [g/s], \qquad r_{min}=-60b\ [g/min]
 \]
 
-Produzir ajuste global e ajustes locais por janela quando houver pontos suficientes. O mínimo local deve ser definido e documentado durante a implementação; valor inicial sugerido: três pontos. Calcular resíduos \(m_{obs}-m_{ajustado}\). R² é diagnóstico auxiliar, nunca critério isolado.
+Produzir ajuste global e ajustes locais por janela quando houver pontos suficientes. Mínimos definidos na fundação (`massa.py`): `MIN_LEITURAS_AJUSTE = 3` leituras finitas com tempos distintos para estimar `a` e `b`; janelas abaixo disso recebem o status `leituras_insuficientes`, sem valores ajustados, e permanecem na tabela. `LEITURAS_RECOMENDADAS_AJUSTE = 5`: com 3 ou 4 leituras o ajuste é calculado, mas recebe o diagnóstico `poucos_pontos` (1 grau de liberdade residual ou menos). Calcular resíduos \(m_{obs}-m_{ajustado}\). R² é diagnóstico auxiliar, nunca critério isolado.
 
 Não aplicar filtros, remoção de outliers ou suavização como padrão. Métodos alternativos devem ser complementares e identificados.
 
@@ -196,7 +206,7 @@ Não gerar gráfico sem dados suficientes; registrar motivo no resumo. Saídas n
 A interface inicial planejada é:
 
 ```bash
-python final/analisar.py --diretorio final/dados --saida final/resultados --janela 200
+python -m final.analisar --diretorio final/dados --saida final/resultados --janela 200
 ```
 
 - `--diretorio`: diretório que contém subpastas de filmagem.
@@ -206,6 +216,22 @@ python final/analisar.py --diretorio final/dados --saida final/resultados --jane
 Esta CLI é uma especificação, não uma funcionalidade disponível nesta versão: `analisar.py` está vazio. Não documentar execução como funcional antes de implementar e testar.
 
 ## 9. Contratos entre módulos
+
+Assinaturas definidas na fundação (docstrings nos módulos; `NotImplementedError` onde a lógica ainda não existe):
+
+| Módulo | Funções | Situação |
+|---|---|---|
+| `periodos.py` | `definir_limites_janelas`, `atribuir_janela` | implementadas e testadas |
+| `periodos.py` | `construir_ciclos`, `interpolar_massa`, `estatisticas_periodos`, `periodos_por_janela` | contrato |
+| `massa.py` | `ajustar_linear`, `taxa_de_perda`, `ajustar_janelas` | contrato |
+| `pipeline.py` | `processar_filmagem(filmagem, duracao_janela_s, pasta_saida)` | contrato |
+| `graficos.py` | `plotar_angulo_mergulhos`, `plotar_massa_ajuste`, `plotar_periodo_tempo`, `plotar_periodo_massa` | contrato |
+| `relatorio.py` | `gravar_tabelas`, `gravar_resumo_texto` | contrato |
+| `analisar.py` | `main`, `descobrir_filmagens`, `carregar_filmagem`, classe `ErroFilmagem` | `ErroFilmagem` definida; `main` retorna código 2 com aviso (CLI não implementada) |
+
+Convenção de importação: os módulos estão em `final/`, que é um pacote Python. Importar sempre como `from final.periodos import ...`; execução pela raiz do repositório com `python -m final.analisar`. Os testes configuram a raiz do repositório em `pytest.ini` (`pythonpath = .`).
+
+Filmagem como dicionário (contrato entre `analisar.py` e `pipeline.py`): chaves `id` (str), `pasta` (Path), `tracker`, `massa`, `mergulhadas` (DataFrames com os cabeçalhos reais) e `condicoes` (dicionário de uma linha). Não há classe compartilhada, para evitar importações circulares.
 
 - `analisar.py` lê/valida cada filmagem uma vez.
 - Dados e metadados carregados são passados explicitamente ao pipeline.
