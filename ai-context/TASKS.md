@@ -41,11 +41,13 @@ Este plano reflete o estado observado em 2026-11-20. O pedido explícito do usu�
 
 ## Prioridade 3 — Pipeline e saídas
 
-- [ ] Implementar orquestração em `final/pipeline.py`.
-- [ ] Implementar gráficos em `final/graficos.py`.
-- [ ] Implementar tabelas e resumos em `final/relatorio.py`.
-- [ ] Integrar execução em lote pela CLI.
-- [ ] Garantir que resultados sejam gravados em diretório separado dos dados.
+- [x] Implementar orquestração em `final/pipeline.py`.
+- [x] Implementar gráficos em `final/graficos.py`.
+- [x] Implementar tabelas e resumos em `final/relatorio.py`.
+- [x] Integrar execução em lote pela CLI.
+- [x] Garantir que resultados sejam gravados em diretório separado dos dados.
+
+*Verificação: 165 testes passando; execução completa sobre os nove conjuntos reais (9 processadas, 0 falhas, 99 arquivos); três mutações nas regras de precisão, proteção dos dados e omissão de gráficos detectadas; inspeção visual dos gráficos.*
 
 ## Prioridade 4 — Qualidade e validação
 
@@ -72,7 +74,7 @@ Este plano reflete o estado observado em 2026-11-20. O pedido explícito do usu�
 
 ## Em andamento
 
-Nenhuma. Prioridade 2 (cálculos) concluída; próxima etapa: Prioridade 3 (pipeline, gráficos, relatórios e gravação).
+Nenhuma. Prioridade 3 (pipeline e saídas) concluída; próxima etapa: Prioridade 4 (validação ponta a ponta).
 
 ## Bloqueios
 

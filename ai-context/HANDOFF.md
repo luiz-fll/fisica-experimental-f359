@@ -27,16 +27,18 @@ Desenvolver o pipeline reprodutível de análise do pássaro bebedor, mantendo i
 - `final/dados_old/` contém uma cópia anterior dos CSVs e não é entrada padrão.
 - Cabeçalhos reais: `tracker.csv` = `tempo_seg,angulo_deg`; `massa.csv` = `tempo_seg,massa_g`; `mergulhadas.csv` = `tempo_seg,angulo_deg`; `condicoes.csv` = `liquido,dia,temperatura_c,umidade_pct`.
 - Não há `evento_id` em `mergulhadas.csv`; identificadores podem ser derivados em memória/saída, sem editar a fonte.
-- Prioridade 2 concluída (cálculos): `periodos.py` e `massa.py` implementados e testados (144 testes). Pipeline, gráficos e relatórios ainda são contratos.
+- Prioridade 3 concluída (pipeline e saídas): `pipeline.py`, `graficos.py`, `relatorio.py` e lote na CLI; resultados gerados em `final/resultados/` (99 arquivos).
+- Correção de dados pelo pesquisador: `agua_dia1/massa.csv` (28 leituras +0,1000 g, 20–560 s). Ver `CURRENT_STATE.md`. Os valores de referência de `agua_dia1` anteriores à correção não valem mais.
+- Prioridade 2 concluída (cálculos): `periodos.py` e `massa.py` implementados e testados (144 testes). 
 - Prioridade 1 concluída (validação): `final/analisar.py` com CLI, descoberta, leitura e validação (`tests/test_analisar.py`).
-- Fundação concluída em 2026-11-20: `requirements.txt`, `requirements-dev.txt`, `pytest.ini` e `tests/` (85 testes no total). A convenção de janelas está implementada em `periodos.py`; `periodos.py` e `massa.py` têm apenas contratos, exceto as janelas; `pipeline.py`, `graficos.py` e `relatorio.py` têm apenas contratos (`NotImplementedError`).
+- Fundação (Prioridade 0): `requirements.txt`, `requirements-dev.txt`, `pytest.ini` e `tests/`. A convenção de janelas está em `periodos.py`.
 - Decisões de continuidade: origem temporal 0 s; janelas `[início, fim)`; a última absorve o resto do ensaio, `[(N-1)·L, t_fim]`, com `N = max(1, floor(t_fim/L))`; mínimo de 3 leituras para ajuste (5 recomendado); mínimo de 2 mergulhos para período e 2 períodos para desvio-padrão.
 - Imports: `from final.<modulo> import ...`; execução com `python -m final.analisar`.
 
 ## Próxima sequência sugerida
 
-1. Prioridade 3: `pipeline.py`, `graficos.py`, `relatorio.py`, integração em lote na CLI e gravação em `--saida`.
-2. Prioridade 4: validação ponta a ponta e revisão amostral das saídas.
+1. Prioridade 4: validação ponta a ponta de uma filmagem, com revisão manual de tabelas e figuras; documentação de execução e formatos.
+2. Revisão científica dos casos de baixo R² e dos desvios altos, com os resíduos.
 
 ## Como retomar
 

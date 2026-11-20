@@ -407,8 +407,9 @@ def test_cli_todas_validas_retorna_zero(tmp_path, capsys):
     codigo = main(["--diretorio", str(tmp_path / "dados"), "--saida", str(tmp_path / "res")])
     saida = capsys.readouterr().out
     assert codigo == 0
-    assert "Válidas: 2. Inválidas: 0." in saida
-    assert "Processamento científico ainda não implementado" in saida
+    assert "Processadas: 2. Com falha: 0." in saida
+    assert (tmp_path / "res" / "a_ok" / "resumo.txt").is_file()
+    assert (tmp_path / "res" / "b_ok" / "resumo.txt").is_file()
 
 
 def test_cli_com_filmagem_invalida_retorna_um_e_identifica_arquivo(tmp_path, capsys):
@@ -418,7 +419,7 @@ def test_cli_com_filmagem_invalida_retorna_um_e_identifica_arquivo(tmp_path, cap
     saida = capsys.readouterr().out
     assert codigo == 1
     assert "[b_ruim]" in saida and "massa.csv: arquivo ausente" in saida
-    assert "Válidas: 1. Inválidas: 1." in saida
+    assert "Processadas: 1. Com falha: 1." in saida
 
 
 def test_cli_diretorio_inexistente_retorna_dois(tmp_path, capsys):
@@ -454,3 +455,39 @@ def test_cli_janela_valida_aparece_no_resumo(tmp_path, capsys):
     criar_filmagem(tmp_path / "dados", "a_ok")
     main(["--diretorio", str(tmp_path / "dados"), "--saida", str(tmp_path / "res"), "--janela", "150"])
     assert "Janela: 150 s" in capsys.readouterr().out
+
+
+# ---------------------------------------------------------------------------
+# Processamento em lote pela CLI
+# ---------------------------------------------------------------------------
+
+
+def test_cli_grava_resultados_fora_dos_dados(tmp_path):
+    dados = tmp_path / "dados"
+    criar_filmagem(dados, "a_ok")
+    saida = tmp_path / "res"
+    assert main(["--diretorio", str(dados), "--saida", str(saida)]) == 0
+    esperados = {
+        "periodos.csv", "massa_ajuste.csv", "massa_residuos.csv",
+        "massa_por_janela.csv", "periodo_por_janela.csv", "resumo.csv", "resumo.txt",
+    }
+    assert esperados <= {p.name for p in (saida / "a_ok").iterdir()}
+
+
+def test_cli_falha_de_processamento_nao_interrompe_o_lote(tmp_path, monkeypatch, capsys):
+    criar_filmagem(tmp_path / "dados", "a_explode")
+    criar_filmagem(tmp_path / "dados", "b_ok")
+    original = analisar.processar_filmagem
+
+    def falha_seletiva(filmagem, janela, saida):
+        if filmagem["id"] == "a_explode":
+            raise RuntimeError("falha de cálculo simulada")
+        return original(filmagem, janela, saida)
+
+    monkeypatch.setattr(analisar, "processar_filmagem", falha_seletiva)
+    codigo = main(["--diretorio", str(tmp_path / "dados"), "--saida", str(tmp_path / "res")])
+    saida = capsys.readouterr().out
+    assert codigo == 1
+    assert "Processadas: 1. Com falha: 1." in saida
+    assert "falha de cálculo simulada" in saida
+    assert (tmp_path / "res" / "b_ok" / "resumo.txt").is_file()

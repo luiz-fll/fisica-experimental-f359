@@ -1,71 +1,82 @@
 # Estado atual do projeto
 
-> Estado verificado em 2026-11-20, após a Prioridade 2 (cálculos científicos). Atualizar após cada execução que alterar o repositório.
+> Estado verificado em 2026-11-20, após a Prioridade 3 (pipeline e saídas). Atualizar após cada execução que alterar o repositório.
 
 ## Situação geral
 
-Prioridades 0, 1 e 2 concluídas. A CLI valida as filmagens e reporta erros e avisos. Os cálculos científicos existem como funções testadas, mas ainda não são executados pela CLI nem gravados em disco: a orquestração (`pipeline.py`), os gráficos, os relatórios e a gravação em `--saida` são a Prioridade 3.
+Prioridades 0 a 3 concluídas. A CLI valida as filmagens, processa cada uma válida isoladamente e grava as saídas em `final/resultados/<id>/`. Resultados já gerados para os nove conjuntos reais (99 arquivos). A Prioridade 4 (validação ponta a ponta e revisão amostral) continua pendente.
 
-Verificado: `python -m final.analisar` sobre `final/dados/` sai com código 0; as nove filmagens são válidas, sem erros nem avisos.
+Verificado: `python -m final.analisar` sobre `final/dados/` sai com código 0; nove filmagens processadas, nenhuma falha, nenhum gráfico omitido.
 
 ## Estrutura de código
 
-- `final/analisar.py`: **implementado** — CLI, descoberta, leitura e validação (Prioridade 1).
-- `final/periodos.py`: **implementado** — janelas (`definir_limites_janelas`, `atribuir_janela`), ciclos (`construir_ciclos`), interpolação sem extrapolação (`interpolar_massa`), estatísticas (`estatisticas_periodos`) e agregação por janela (`periodos_por_janela`).
-- `final/massa.py`: **implementado** — ajuste linear (`ajustar_linear`), taxas com sinal (`taxa_de_perda`) e ajustes por janela (`ajustar_janelas`).
-- `final/pipeline.py`, `final/graficos.py`, `final/relatorio.py`: contratos documentados; `NotImplementedError`.
+- `final/analisar.py`: CLI, descoberta, leitura e validação (Prioridade 1); integra o lote de processamento.
+- `final/periodos.py`: janelas, ciclos, interpolação sem extrapolação, estatísticas e agregação por janela (Prioridade 2).
+- `final/massa.py`: ajuste linear, taxas com sinal e ajustes por janela (Prioridade 2).
+- `final/pipeline.py`: orquestra uma filmagem a partir do dicionário validado; não lê arquivos; recusa saída dentro dos dados (Prioridade 3).
+- `final/graficos.py`: quatro figuras com unidades e identificação; `DadosInsuficientes` quando não há dados (Prioridade 3).
+- `final/relatorio.py`: CSVs com precisão completa, `resumo.txt` formatado, proteção contra escrita na origem (Prioridade 3).
 - `final/teste.py`: script estrutural legado, inalterado.
-- `tests/`: 144 testes.
-  - `test_analisar.py`, `test_janelas.py`, `test_politicas.py`, `test_estrutura.py`: validação, janelas e importação.
-  - `test_periodos_calculos.py` e `test_massa_calculos.py`: cálculos sintéticos. Comparações com `np.polyfit` e com a fórmula matricial do erro padrão, casos de domínio, mínimos e sinais.
-  - `test_dados_reais.py`: leitura somente sobre `final/dados/`, incluindo a consistência entre janelas.
+- `tests/`: 165 testes.
+  - `test_analisar.py`: validação, lote e CLI (incluindo processamento e isolamento de falha de processamento).
+  - `test_janelas.py`, `test_politicas.py`, `test_estrutura.py`.
+  - `test_periodos_calculos.py`, `test_massa_calculos.py`: cálculos sintéticos.
+  - `test_saidas.py`: gráficos, relatório e pipeline.
+  - `test_dados_reais.py`: leitura somente sobre `final/dados/`, com processamento em diretório temporário.
 
-## Regras científicas implementadas
+## Correção dos dados de massa (agua_dia1)
 
-- Períodos: `T_i = t_{i+1} - t_i` entre mergulhos consecutivos. Ponto médio para associação de massa e janela.
-- Massa no ponto médio: interpolação linear somente dentro do domínio de `massa.csv`. Fora dele, NaN e `suporte_massa = False`. Não há extrapolação, mesmo que `np.interp` a faça por padrão.
-- Ajuste: `m(t) = a + b·t` por mínimos quadrados. Resíduos `observado − ajustado`. Erro padrão de `b` com `n−2` graus de liberdade.
-- Taxa: só para `b < 0`, com `-b` em g/s e `-60b` em g/min. Para `b ≥ 0`, a inclinação é reportada como `inclinacao_nao_negativa`, sem taxa.
-- R²: reportado como diagnóstico; não há critério baseado só nele.
-- Mínimos: 3 leituras de massa para ajuste (`leituras_insuficientes` abaixo disso); 2 mergulhos para existir período; 2 períodos para desvio amostral (`sem_desvio` abaixo disso); 5 leituras recomendadas (`poucos_pontos`).
+O pesquisador corrigiu `final/dados/agua_dia1/massa.csv` após inspeção do vídeo. Alteração verificada byte a byte:
 
-## Resultados de referência sobre os nove conjuntos reais (somente leitura)
+- 28 leituras, de 20,018 s a 560,007 s, aumentaram exatamente 0,1000 g.
+- As leituras de 580,007 s e 600,007 s não foram alteradas.
+- Tempos inalterados. Nenhum outro arquivo mudou.
 
-Calculados pelas funções implementadas; ainda não gravados em disco.
+Efeito: o salto de +0,0965 g entre 560 s e 580 s desaparece e a série fica suave. O R² global sobe de 0,24 para 0,96, e o resíduo máximo cai de 0,078 g para 0,016 g. A inclinação da última janela passa de positiva para negativa. Os períodos de `agua_dia1` não mudam, porque dependem só de `mergulhadas.csv`.
 
-| Filmagem | Ciclos | Sem suporte de massa | Período médio (s) | Desvio (s) | Taxa global (g/min) | R² global |
-|---|---:|---:|---:|---:|---:|---:|
-| agua_dia1 | 22 | 0 | 25,59 | 3,92 | 0,0046 | 0,242 |
-| agua_dia2 | 25 | 0 | 23,20 | 4,49 | 0,0070 | 0,967 |
-| agua_dia3 | 25 | 0 | 22,29 | 4,98 | 0,0063 | 0,944 |
-| alcool70_dia1 | 56 | 2 | 10,61 | 3,32 | 0,0283 | 0,976 |
-| alcool70_dia2 | 20 | 0 | 25,92 | 10,98 | 0,0109 | 0,666 |
-| alcool70_dia3 | 36 | 1 | 16,36 | 6,48 | 0,0292 | 0,713 |
-| alcool99_dia1 | 35 | 1 | 16,67 | 4,05 | 0,0444 | 0,975 |
-| alcool99_dia2 | 33 | 2 | 18,16 | 5,28 | 0,0427 | 0,783 |
-| alcool99_dia3 | 31 | 2 | 18,76 | 6,09 | 0,0258 | 0,670 |
+Os valores de referência anteriores para `agua_dia1` (documentados na etapa 2) estavam errados por causa dessa anotação e foram substituídos abaixo.
+
+## Resultados gerados (valores de referência)
+
+Extraídos dos `resumo.csv` em `final/resultados/`. São saídas das funções sobre os dados atuais, não validação científica.
+
+| Filmagem | Ciclos | Sem massa interpolada | Período médio (s) | Desvio (s) | Taxa global (g/min) | R² global | Resíduo máx. (g) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| agua_dia1 | 22 | 0 | 25,59 | 3,92 | 0,0084 | 0,964 | 0,0159 |
+| agua_dia2 | 25 | 0 | 23,20 | 4,49 | 0,0070 | 0,967 | 0,0128 |
+| agua_dia3 | 25 | 0 | 22,29 | 4,98 | 0,0063 | 0,944 | 0,0104 |
+| alcool70_dia1 | 56 | 2 | 10,61 | 3,32 | 0,0283 | 0,976 | 0,0345 |
+| alcool70_dia2 | 20 | 0 | 25,92 | 10,98 | 0,0109 | 0,666 | 0,0520 |
+| alcool70_dia3 | 36 | 1 | 16,36 | 6,48 | 0,0292 | 0,713 | 0,0874 |
+| alcool99_dia1 | 35 | 1 | 16,67 | 4,05 | 0,0444 | 0,975 | 0,0441 |
+| alcool99_dia2 | 33 | 2 | 18,16 | 5,28 | 0,0427 | 0,783 | 0,0985 |
+| alcool99_dia3 | 31 | 2 | 18,76 | 6,09 | 0,0258 | 0,670 | 0,0805 |
 
 Observações para interpretação (não são conclusões):
 
-- `agua_dia1`: R² = 0,24 e resíduo máximo de 0,078 g. Resulta do salto de massa de 560 a 580 s. A inclinação da última janela é positiva, portanto não é tratada como taxa.
-- Os ciclos sem suporte de massa têm ponto médio após 600 s, onde não há leitura de massa.
-- Os períodos de `alcool70_dia2` têm desvio alto (10,98 s), consistente com a dúvida sobre o critério de anotação registrada em `revisao_dados_e_plano.md`.
-- Os valores de referência são apenas a saída das funções sobre os dados atuais. Nenhum deles é validação científica.
+- Os ciclos sem massa interpolada têm ponto médio depois de 600 s, onde não há leitura de massa.
+- `alcool70_dia2` tem desvio de período de 10,98 s, consistente com a dúvida sobre o critério de anotação registrada em `revisao_dados_e_plano.md`.
+- `alcool70_dia2`, `alcool70_dia3`, `alcool99_dia2` e `alcool99_dia3` têm resíduo máximo acima de 0,04 g e R² abaixo de 0,8; a qualidade do ajuste precisa ser lida caso a caso, junto com os resíduos.
+- Nenhum gráfico foi omitido nos nove conjuntos.
+
+## Saídas por filmagem
+
+Em `final/resultados/<id>/`: `periodos.csv`, `massa_ajuste.csv`, `massa_residuos.csv`, `massa_por_janela.csv`, `periodo_por_janela.csv`, `resumo.csv`, `resumo.txt` e quatro PNG (`angulo_mergulhos.png`, `massa_ajuste.png`, `periodo_tempo.png`, `periodo_massa_exploratorio.png`).
 
 ## Dados
 
-- `final/dados/`, `final/dados_old/`, `final/dados_exemplo/`, `parcial/`: não modificados. Verificados por comparação com o pacote recebido.
-- Nenhum arquivo é criado em `final/resultados/`.
+- `final/dados/` (exceto a correção de `agua_dia1/massa.csv`, feita pelo pesquisador), `final/dados_old/`, `final/dados_exemplo/`, `parcial/`: não modificados pelo software. Verificados por comparação com o pacote recebido.
+- `final/resultados/`: saída derivada, gerada pela execução.
 
 ## Próximas etapas recomendadas
 
-1. Prioridade 3: `pipeline.py` (orquestra uma filmagem), `graficos.py` (figuras com unidades e identificação), `relatorio.py` (CSVs e `resumo.txt`), integração em lote na CLI e gravação em `--saida`.
-2. Prioridade 4: validação ponta a ponta, documentação de execução e revisão amostral das saídas.
+1. Prioridade 4: validação ponta a ponta de uma filmagem com revisão manual das amostras (tabelas e figuras); documentação de execução e formatos.
+2. Revisar os casos de baixo R² e os desvios altos com os resíduos, antes de qualquer interpretação.
 
 ## Limites
 
-`parcial/` permanece histórico imutável. Dados brutos não devem ser modificados.
+`parcial/` permanece histórico imutável. Dados brutos não devem ser modificados pelo software.
 
 ## Última atualização
 
-2026-11-20. Prioridade 2 (cálculos científicos).
+2026-11-20. Prioridade 3 (pipeline, gráficos, relatórios e CLI em lote).

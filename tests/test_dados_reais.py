@@ -47,3 +47,17 @@ def test_calculos_sobre_dados_reais_sao_consistentes_entre_janelas():
 
         global_ = ajustar_linear(massa["tempo_seg"].to_numpy(), massa["massa_g"].to_numpy())
         assert global_["status"] == "ok", resultado["id"]
+
+
+def test_processamento_real_grava_saidas_fora_dos_dados(tmp_path):
+    """Processa os nove conjuntos reais em diretório temporário; a pasta de dados fica intacta."""
+    from final.pipeline import processar_filmagem
+
+    pastas = analisar.descobrir_filmagens(analisar.DIR_DADOS_PADRAO)
+    for resultado in analisar.validar_lote(pastas):
+        assert resultado["status"] == "valida", resultado["id"]
+        saida = tmp_path / resultado["id"]
+        processar_filmagem(resultado["filmagem"], 200.0, saida)
+        assert (saida / "resumo.txt").is_file(), resultado["id"]
+        assert (saida / "periodos.csv").is_file(), resultado["id"]
+    assert not any(p.name == "resultados" for p in analisar.DIR_DADOS_PADRAO.rglob("*") if p.is_dir())

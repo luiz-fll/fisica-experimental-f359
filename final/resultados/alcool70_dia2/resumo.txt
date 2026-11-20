@@ -1,0 +1,39 @@
+Resumo da filmagem alcool70_dia2
+================================
+
+Condições (constantes adotadas para o ensaio, um registro por filmagem)
+  líquido: alcool 70%; dia: 2026-10-26
+  temperatura: 23.9 °C; umidade: 64 %
+
+Ensaio
+  instante final considerado: 600.007 s
+  janelas de 200 s: 3
+  mergulhos anotados: 21
+
+Períodos (intervalos entre mergulhos consecutivos)
+  ciclos: 20 (sem massa interpolada: 0)
+  média: 25.9243 s
+  desvio-padrão amostral: 10.9754 s
+  mínimo: 8.127 s; máximo: 43.102 s
+
+Massa (ajuste linear global m(t) = a + b·t)
+  leituras: 30; status: ok
+  b = -0.000181399 g/s
+  taxa positiva de perda: 0.000181399 g/s (0.010884 g/min)
+  R² (diagnóstico auxiliar): 0.665721
+  erro padrão de b: 2.42921e-05 g/s
+  resíduo máximo absoluto: 0.0519686 g
+
+Avisos de validação
+  nenhum
+
+Gráficos
+  gerado: angulo_mergulhos.png
+  gerado: massa_ajuste.png
+  gerado: periodo_tempo.png
+  gerado: periodo_massa_exploratorio.png
+
+Limitações
+  Resultados são estimativas e diagnósticos. Não são uma verificação da hipótese física.
+  O R² é auxiliar; a adequação do ajuste depende dos resíduos e do contexto experimental.
+  As condições ambientais são um único registro por filmagem; não há série temporal.

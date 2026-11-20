@@ -108,3 +108,27 @@ Este arquivo é cumulativo e append-only. Cada execução de trabalho acrescenta
 
 ### Pendências
 - Prioridade 3 (pipeline, gráficos, relatórios e gravação em `--saida`).
+
+## 2026-11-20 — Prioridade 3: pipeline, gráficos, relatórios e lote na CLI
+
+### Correção de dados (pelo pesquisador, verificada)
+- `final/dados/agua_dia1/massa.csv`: 28 leituras (20,018–560,007 s) acrescidas de 0,1000 g; 580,007 s e 600,007 s inalteradas; tempos iguais. Nenhum outro arquivo de dados foi alterado. Efeito: salto de +0,0965 g em 560–580 s desaparece; R² global 0,24 → 0,96.
+
+### Alterações
+- `final/pipeline.py`: `processar_filmagem` orquestra uma filmagem a partir do dicionário validado; `t_fim` = maior instante de massa ou mergulhos; recusa saída dentro dos dados.
+- `final/graficos.py`: `plotar_angulo_mergulhos`, `plotar_massa_ajuste`, `plotar_periodo_tempo`, `plotar_periodo_massa`, com API orientada a objetos do matplotlib (sem pyplot); `DadosInsuficientes(motivo)`.
+- `final/relatorio.py`: `gravar_tabelas`, `montar_resumo_texto`, `gravar_resumo_texto` com precisão completa e proteção da pasta de origem.
+- `final/analisar.py`: lote de processamento na CLI, com isolamento de falha de processamento (status `erro_processamento`). A mensagem de "não implementado" foi removida.
+- Testes: `tests/test_saidas.py` e processamento real temporário em `tests/test_dados_reais.py`. Testes da CLI atualizados.
+- Resultados gerados em `final/resultados/` para os nove conjuntos (99 arquivos).
+- Atualizados `PROJECT.md` (7, 8, 9), `TASKS.md`, `CURRENT_STATE.md`, `HANDOFF.md` e READMEs.
+
+### Verificações
+- `python -m pytest`: 165 passed.
+- Mutações: CSV arredondado, proteção da pasta de dados removida, gráfico sem dados não omitido — todas detectadas.
+- Execução completa da CLI: 9 processadas, 0 falhas, código 0.
+- Inspeção visual de figuras (agua_dia1) e conferência de tabelas contra cálculo direto.
+- Dados brutos e parcial comparados byte a byte com o pacote recebido: sem divergência.
+
+### Pendências
+- Prioridade 4: validação ponta a ponta com revisão manual e documentação de execução e formatos.

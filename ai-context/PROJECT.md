@@ -195,18 +195,32 @@ Produzir ajuste global e ajustes locais por janela quando houver pontos suficien
 
 Não aplicar filtros, remoção de outliers ou suavização como padrão. Métodos alternativos devem ser complementares e identificados.
 
-## 7. Saídas planejadas
+## 7. Saídas
 
-Para cada filmagem válida, gerar `resultados/<id_da_filmagem>/`, com pelo menos:
-- `periodos.csv`;
-- `massa_ajuste.csv`;
-- `massa_por_janela.csv`;
-- `periodo_por_janela.csv`;
-- `resumo.csv`;
-- `resumo.txt`;
-- gráficos aplicáveis: ângulo × tempo com mergulhos marcados; massa × tempo com ajuste global; período × tempo; período × massa interpolada (exploratório); diagnósticos por janela quando úteis.
+Implementadas em `final/pipeline.py`, `final/graficos.py` e `final/relatorio.py` (Prioridade 3). Para cada filmagem válida, a CLI grava em `<saida>/<id_da_filmagem>/`:
 
-Não gerar gráfico sem dados suficientes; registrar motivo no resumo. Saídas nunca devem ser gravadas sobre os dados brutos.
+**Tabelas (CSV, precisão completa; célula vazia = ausente)**
+- `periodos.csv`: ciclos entre mergulhos consecutivos, com `evento_inicial`, `evento_final` (posições na ordem do arquivo), `t_inicial_s`, `t_final_s`, `ponto_medio_s`, `periodo_s`, `massa_ponto_medio_g`, `suporte_massa` e `janela` (janela do ponto médio).
+- `massa_ajuste.csv`: ajuste linear global (uma linha), com `n_leituras`, `a_g`, `b_g_s`, `tipo_taxa`, `taxa_g_s`, `taxa_g_min`, `r2`, `erro_padrao_b_g_s`, `erro_padrao_residuos_g`, `residuo_max_abs_g`, `status` e `diagnosticos`.
+- `massa_residuos.csv`: por leitura, `tempo_seg`, `massa_g`, `massa_ajustada_g` e `residuo_g` (observado menos ajustado).
+- `massa_por_janela.csv`: ajuste por janela (`COLUNAS_AJUSTE_JANELA`), uma linha por janela.
+- `periodo_por_janela.csv`: estatísticas dos períodos por janela, com `status` (`sem_ciclos`, `sem_desvio`, `ok`).
+- `resumo.csv`: resumo em formato longo (`grandeza`, `valor`, `unidade`).
+
+**Texto**
+- `resumo.txt`: identificação, condições, ensaio, períodos, ajuste de massa, avisos de validação, gráficos gerados e omitidos com motivo, e limitações. Arredondado apenas para leitura humana.
+
+**Gráficos (PNG)**, cada um omitido com motivo registrado em `resumo.txt` quando não há dados suficientes:
+- `angulo_mergulhos.png`: ângulo × tempo, com os mergulhos marcados.
+- `massa_ajuste.png`: massa × tempo, com a reta do ajuste global e as fronteiras das janelas.
+- `periodo_tempo.png`: período × tempo do ponto médio.
+- `periodo_massa_exploratorio.png`: período × massa interpolada, somente ciclos com suporte. Exploratório; não é verificação da hipótese.
+
+Os diagnósticos por janela ficam nas tabelas `massa_por_janela.csv` e `periodo_por_janela.csv`; não há figura específica para eles.
+
+Regras de gravação: as saídas nunca são gravadas dentro da pasta de dados da filmagem, e o pipeline recusa essa situação. Um arquivo de mesmo nome em `<saida>/<id>/` é sobrescrito, pois é saída derivada de execução anterior. Nenhum outro arquivo é removido.
+
+Leitura exata dos CSVs: use `pd.read_csv(..., float_precision="round_trip")` para reproduzir os valores com precisão total. Em tabelas de uma coluna, ausentes aparecem como `""`.
 
 ## 8. CLI
 
@@ -220,22 +234,22 @@ python -m final.analisar --diretorio final/dados --saida final/resultados --jane
 - `--saida` (padrão: `final/resultados`): diretório-base dos resultados; não pode estar dentro de `--diretorio`.
 - `--janela` (padrão: 200): duração positiva e finita, em segundos.
 
-**Estado atual:** a CLI realiza a validação de todas as filmagens e imprime uma tabela com status, quantidade de leituras, mergulhos, avisos e erros, com a identificação de arquivo e linha. Não grava resultados: o processamento científico e a gravação em `--saida` dependem das Prioridades 2 e 3.
+**Estado atual:** a CLI valida todas as filmagens, processa cada uma válida isoladamente e grava as saídas da seção 7 em `<saida>/<id>/`. Uma filmagem inválida ou com falha de processamento é reportada e não interrompe o lote.
 
-Códigos de saída: 0 se todas as filmagens são válidas; 1 se alguma é inválida; 2 para erro de uso ou de configuração (diretório inexistente, saída dentro dos dados, janela inválida, nenhuma subpasta).
+Códigos de saída: 0 se todas as filmagens são válidas e processadas; 1 se alguma é inválida ou falhou; 2 para erro de uso ou de configuração (diretório inexistente, saída dentro dos dados, janela inválida, nenhuma subpasta).
 
 ## 9. Contratos entre módulos
 
-Assinaturas definidas na fundação (docstrings nos módulos; `NotImplementedError` onde a lógica ainda não existe):
+Assinaturas e responsabilidades (todas implementadas e testadas até a Prioridade 3):
 
 | Módulo | Funções | Situação |
 |---|---|---|
 | `periodos.py` | `definir_limites_janelas`, `atribuir_janela`, `construir_ciclos`, `interpolar_massa`, `estatisticas_periodos`, `periodos_por_janela` | implementadas e testadas (Prioridade 2) |
 | `massa.py` | `ajustar_linear`, `taxa_de_perda`, `ajustar_janelas` | implementadas e testadas (Prioridade 2) |
-| `pipeline.py` | `processar_filmagem(filmagem, duracao_janela_s, pasta_saida)` | contrato |
-| `graficos.py` | `plotar_angulo_mergulhos`, `plotar_massa_ajuste`, `plotar_periodo_tempo`, `plotar_periodo_massa` | contrato |
-| `relatorio.py` | `gravar_tabelas`, `gravar_resumo_texto` | contrato |
-| `analisar.py` | `main`, `descobrir_filmagens`, `carregar_filmagem`, `validar_lote`, `Problema`, `ErroFilmagem` | implementadas e testadas (Prioridade 1) |
+| `pipeline.py` | `processar_filmagem(filmagem, duracao_janela_s, pasta_saida)` | implementada (Prioridade 3); `pasta_saida` é a pasta da própria filmagem |
+| `graficos.py` | `plotar_angulo_mergulhos`, `plotar_massa_ajuste`, `plotar_periodo_tempo`, `plotar_periodo_massa`; exceção `DadosInsuficientes(motivo)` | implementada (Prioridade 3); figuras sem dados suficientes levantam `DadosInsuficientes` |
+| `relatorio.py` | `gravar_tabelas(pasta_saida, tabelas, origem)`, `montar_resumo_texto(info)`, `gravar_resumo_texto(pasta_saida, texto, origem)` | implementada (Prioridade 3); `origem` bloqueia escrita dentro dos dados |
+| `analisar.py` | `main`, `descobrir_filmagens`, `carregar_filmagem`, `validar_lote`, `Problema`, `ErroFilmagem` | implementadas e testadas (Prioridades 1 e 3) |
 
 Retornos implementados (Prioridade 2):
 

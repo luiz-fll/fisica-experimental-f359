@@ -9,14 +9,17 @@ Fluxo:
 2. ``descobrir_filmagens`` lista as subpastas diretas do diretório.
 3. ``validar_lote`` chama ``carregar_filmagem`` para cada pasta, isolando falhas.
 4. ``carregar_filmagem`` lê cada um dos quatro CSVs uma única vez e valida tudo
-   em memória. Nenhum arquivo é modificado, e o ``.trk`` nunca é lido.
+   em memória. Nenhum arquivo de dados é modificado, e o ``.trk`` nunca é lido.
+5. Cada filmagem válida é processada por ``pipeline.processar_filmagem``, que grava
+   em ``--saida/<id>``. Uma falha de processamento é isolada, como a de validação.
 
 Não há correção silenciosa de dados: valores e cabeçalhos são aceitos como estão ou
 reportados como erro. Problemas de qualidade que não impedem a análise são avisos.
 
-Códigos de saída da CLI: 0 se todas as filmagens são válidas; 1 se alguma é
-inválida; 2 para erro de uso ou de configuração (diretório inexistente, saída dentro
-dos dados, janela inválida, nenhuma filmagem encontrada).
+Códigos de saída da CLI: 0 se todas as filmagens são válidas e foram processadas;
+1 se alguma é inválida ou falhou no processamento; 2 para erro de uso ou de
+configuração (diretório inexistente, saída dentro dos dados, janela inválida, nenhuma
+filmagem encontrada).
 """
 
 from __future__ import annotations
@@ -31,6 +34,7 @@ import numpy as np
 import pandas as pd
 
 from final.massa import MIN_LEITURAS_AJUSTE
+from final.pipeline import processar_filmagem
 from final.periodos import (
     DURACAO_JANELA_PADRAO_S,
     MIN_MERGULHOS_PARA_PERIODO,
@@ -582,16 +586,33 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     resultados = validar_lote(pastas)
-    validas = sum(1 for r in resultados if r["status"] == "valida")
-    invalidas = len(resultados) - validas
+    for item in resultados:
+        if item["status"] != "valida":
+            continue
+        try:
+            resumo = processar_filmagem(item["filmagem"], args.janela, args.saida / item["id"])
+        except Exception as exc:  # isolamento: uma falha de processamento não derruba o lote
+            item["status"] = "erro_processamento"
+            item["problemas"] = list(item["problemas"]) + [
+                Problema("(processamento)", ERRO, f"{type(exc).__name__}: {exc}")
+            ]
+            continue
+        item["status"] = "processada"
+        item["resultado"] = resumo
 
-    print(f"Validação de {len(resultados)} filmagem(ns) em {args.diretorio}")
+    processadas = sum(1 for r in resultados if r["status"] == "processada")
+    falhas = len(resultados) - processadas
+
+    print(f"Processamento de {len(resultados)} filmagem(ns) em {args.diretorio}")
     for linha in _formatar_relatorio(resultados):
         print(linha)
     print()
-    print(f"Válidas: {validas}. Inválidas: {invalidas}. Janela: {args.janela:g} s. Saída: {args.saida}.")
-    print("Processamento científico ainda não implementado (etapa de pipeline).")
-    return 0 if invalidas == 0 else 1
+    print(f"Processadas: {processadas}. Com falha: {falhas}. Janela: {args.janela:g} s. Saída: {args.saida}.")
+    for item in resultados:
+        if item["status"] == "processada":
+            graficos = ", ".join(item["resultado"]["graficos"]) or "nenhum"
+            print(f"  {item['id']}: {len(item['resultado']['arquivos'])} arquivo(s); gráficos: {graficos}")
+    return 0 if falhas == 0 else 1
 
 
 if __name__ == "__main__":

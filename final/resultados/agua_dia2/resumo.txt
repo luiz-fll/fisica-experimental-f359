@@ -1,0 +1,39 @@
+Resumo da filmagem agua_dia2
+============================
+
+Condições (constantes adotadas para o ensaio, um registro por filmagem)
+  líquido: agua; dia: 2026-10-26
+  temperatura: 23.9 °C; umidade: 64 %
+
+Ensaio
+  instante final considerado: 610.29 s
+  janelas de 200 s: 3
+  mergulhos anotados: 26
+
+Períodos (intervalos entre mergulhos consecutivos)
+  ciclos: 25 (sem massa interpolada: 0)
+  média: 23.1965 s
+  desvio-padrão amostral: 4.49102 s
+  mínimo: 15.822 s; máximo: 29.884 s
+
+Massa (ajuste linear global m(t) = a + b·t)
+  leituras: 30; status: ok
+  b = -0.000115943 g/s
+  taxa positiva de perda: 0.000115943 g/s (0.00695655 g/min)
+  R² (diagnóstico auxiliar): 0.967318
+  erro padrão de b: 4.02747e-06 g/s
+  resíduo máximo absoluto: 0.0127521 g
+
+Avisos de validação
+  - mergulhadas.csv: 1 mergulho(s) fora do intervalo de massa.csv [20.019, 600.007] s, linhas [27]
+
+Gráficos
+  gerado: angulo_mergulhos.png
+  gerado: massa_ajuste.png
+  gerado: periodo_tempo.png
+  gerado: periodo_massa_exploratorio.png
+
+Limitações
+  Resultados são estimativas e diagnósticos. Não são uma verificação da hipótese física.
+  O R² é auxiliar; a adequação do ajuste depende dos resíduos e do contexto experimental.
+  As condições ambientais são um único registro por filmagem; não há série temporal.

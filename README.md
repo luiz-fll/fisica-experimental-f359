@@ -6,7 +6,7 @@ Projeto de análise experimental da relação entre o líquido externo que umede
 
 O conjunto de dados reais está em `final/dados/`: são nove filmagens (três por condição nominal: água, álcool 70% e álcool 99%). Cada uma contém `tracker.csv`, `massa.csv`, `mergulhadas.csv`, `condicoes.csv` e o arquivo de projeto do Tracker (`.trk`). Há também `final/dados_exemplo/`, com uma filmagem pequena para referência de formato, e `final/dados_old/`, uma cópia anterior dos CSVs.
 
-Os módulos da implementação estão em `final/`. Nesta versão, estão implementadas: validação das filmagens (`analisar.py`) e os cálculos de períodos, interpolação da massa, estatísticas, ajuste linear e ajustes por janela (`periodos.py`, `massa.py`), com uma suíte de testes. Pipeline, gráficos e relatórios ainda são contratos, e a CLI ainda não grava resultados. `final/teste.py` é apenas um reconhecedor estrutural de diretórios, não executa análise científica.
+Os módulos da implementação estão em `final/`. Nesta versão estão implementados: validação das filmagens, cálculos de períodos, interpolação da massa, estatísticas, ajuste linear, ajustes por janela e, a partir deles, o pipeline completo com tabelas, gráficos e resumos. Resultados já gerados em `final/resultados/`. `final/teste.py` é apenas um reconhecedor estrutural de diretórios.
 
 ## Começar a trabalhar
 
@@ -36,10 +36,10 @@ python -m pytest
 
 ## Execução
 
-Validação das filmagens, a partir da raiz do repositório:
+Validação e processamento de todas as filmagens, a partir da raiz do repositório:
 
 ```bash
 python -m final.analisar --diretorio final/dados --saida final/resultados --janela 200
 ```
 
-Código de saída: 0 se todas são válidas, 1 se alguma é inválida, 2 para erro de uso. Os cálculos estão disponíveis como funções em `final/periodos.py` e `final/massa.py`, mas a CLI ainda não os executa nem grava resultados.
+Para cada filmagem válida são gravados, em `final/resultados/<id>/`, tabelas CSV, `resumo.txt` e até quatro gráficos PNG. Código de saída: 0 se todas são válidas e processadas, 1 se alguma é inválida ou falhou, 2 para erro de uso.
