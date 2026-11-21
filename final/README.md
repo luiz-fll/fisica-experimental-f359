@@ -12,6 +12,8 @@ final/
 ├── massa.py
 ├── graficos.py
 ├── relatorio.py
+├── constantes.py   # NIST: calor latente, pressão de vapor, t crítico, L·r
+├── comparacao.py  # comparação dia a dia e entre dias
 ├── teste.py
 ├── dados/
 │   └── id_da_filmagem/
@@ -46,7 +48,7 @@ A partir da raiz do repositório:
 python -m final.analisar --diretorio final/dados --saida final/resultados --janela 200
 ```
 
-**Estado:** pipeline completo. `analisar.py` valida e processa cada filmagem; `periodos.py` e `massa.py` calculam; `graficos.py` e `relatorio.py` gravam figuras e tabelas; `pipeline.py` orquestra uma filmagem. `teste.py` apenas reconhece e lista diretórios.
+**Estado:** pipeline completo. `analisar.py` valida, processa e dispara a comparação; `periodos.py`, `massa.py` e `constantes.py` calculam (incluindo IC95% e L·r); `pipeline.py` orquestra uma filmagem; `comparacao.py` compara as filmagens dia a dia; `graficos.py` e `relatorio.py` gravam figuras e tabelas. `teste.py` apenas reconhece e lista diretórios.
 
 O comando acima valida as filmagens de `--diretorio`. Para validar outro conjunto, aponte `--diretorio` para outra pasta cujas subpastas tenham os quatro CSVs.
 
@@ -56,7 +58,8 @@ Em `resultados/<id>/`:
 
 - Tabelas: `periodos.csv`, `massa_ajuste.csv`, `massa_residuos.csv`, `massa_por_janela.csv`, `periodo_por_janela.csv`, `resumo.csv`
 - Texto: `resumo.txt` (condições, períodos, taxa, R², avisos, limitações)
-- Gráficos PNG: `angulo_mergulhos.png`, `massa_ajuste.png`, `periodo_tempo.png`, `periodo_massa_exploratorio.png`
+- Gráficos PNG por filmagem: `angulo_mergulhos.png`, `massa_ajuste.png`, `periodo_tempo.png`
+- `comparacao/`: `por_dia/<dia>/` (comparacao_dia.csv, hipoteses_dia.csv, gráficos de massa, períodos, τ × L·r e taxas por janela); `entre_dias/` (variacao_por_liquido.csv, pares_janela.csv, grafico_entre_dias.png); `leia_me.txt`
 
 ## Testes
 

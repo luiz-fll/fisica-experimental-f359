@@ -21,6 +21,7 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 
@@ -58,15 +59,16 @@ def gravar_tabelas(
     return gravados
 
 
-def _formatar(valor, casas: int = 6) -> str:
+def _formatar(valor, casas: int = 4, cientifico: bool = False) -> str:
+    """Formato fixo: nunca suprime zeros à direita (ver graficos.py)."""
     if valor is None:
         return "ausente"
     if isinstance(valor, bool):
         return "sim" if valor else "não"
-    if isinstance(valor, float):
+    if isinstance(valor, (float, np.floating)):
         if math.isnan(valor):
             return "ausente"
-        return f"{valor:.{casas}g}"
+        return f"{valor:.{casas}e}" if cientifico else f"{valor:.{casas}f}"
     return str(valor)
 
 
@@ -87,11 +89,11 @@ def montar_resumo_texto(info: dict) -> str:
     linhas.append("")
     linhas.append("Condições (constantes adotadas para o ensaio, um registro por filmagem)")
     linhas.append(f"  líquido: {cond['liquido']}; dia: {cond['dia']}")
-    linhas.append(f"  temperatura: {_formatar(cond['temperatura_c'])} °C; umidade: {_formatar(cond['umidade_pct'])} %")
+    linhas.append(f"  temperatura: {_formatar(cond['temperatura_c'], 1)} °C; umidade: {_formatar(cond['umidade_pct'], 0)} %")
     linhas.append("")
     linhas.append("Ensaio")
-    linhas.append(f"  instante final considerado: {_formatar(info['t_fim_s'])} s")
-    linhas.append(f"  janelas de {_formatar(info['duracao_janela_s'])} s: {info['n_janelas']}")
+    linhas.append(f"  instante final considerado: {_formatar(info['t_fim_s'], 3)} s")
+    linhas.append(f"  janelas de {_formatar(info['duracao_janela_s'], 0)} s: {info['n_janelas']}")
     linhas.append(f"  mergulhos anotados: {info['n_mergulhos']}")
     linhas.append("")
     linhas.append("Períodos (intervalos entre mergulhos consecutivos)")
@@ -99,28 +101,49 @@ def montar_resumo_texto(info: dict) -> str:
     if per["n"] == 0:
         linhas.append("  sem ciclos: não há estatísticas de período.")
     else:
-        linhas.append(f"  média: {_formatar(per['media_s'])} s")
-        linhas.append(f"  desvio-padrão amostral: {_formatar(per['desvio_padrao_s'])} s")
-        linhas.append(f"  mínimo: {_formatar(per['minimo_s'])} s; máximo: {_formatar(per['maximo_s'])} s")
+        linhas.append(f"  média: {_formatar(per['media_s'], 2)} s")
+        linhas.append(f"  desvio-padrão amostral: {_formatar(per['desvio_padrao_s'], 2)} s")
+        if np.isfinite(per.get("ic95_media_inf_s", np.nan)):
+            linhas.append(
+                f"  IC95% da média: [{_formatar(per['ic95_media_inf_s'], 2)}, "
+                f"{_formatar(per['ic95_media_sup_s'], 2)}] s"
+            )
+        linhas.append(f"  mínimo: {_formatar(per['minimo_s'], 2)} s; máximo: {_formatar(per['maximo_s'], 2)} s")
         if per["n"] < 2:
             linhas.append("  desvio-padrão ausente: é necessário ao menos 2 ciclos.")
     linhas.append("")
     linhas.append("Massa (ajuste linear global m(t) = a + b·t)")
     linhas.append(f"  leituras: {mas['n_leituras']}; status: {mas['status']}")
     if mas["status"] == "ok":
-        linhas.append(f"  b = {_formatar(mas['b_g_s'])} g/s")
+        linhas.append(f"  b (inclinação) = {_formatar(mas['b_g_s'], 4, True)} g/s")
         if mas["tipo_taxa"] == "perda":
             linhas.append(
-                f"  taxa positiva de perda: {_formatar(mas['taxa_g_s'])} g/s "
-                f"({_formatar(mas['taxa_g_min'])} g/min)"
+                f"  taxa de perda = −b = {_formatar(mas['taxa_g_s'], 4, True)} g/s "
+                f"({_formatar(mas['taxa_g_min'], 4)} g/min), "
+                f"IC95% [{_formatar(mas['ic95_taxa_g_min_inf'], 4)}, "
+                f"{_formatar(mas['ic95_taxa_g_min_sup'], 4)}] g/min"
             )
         else:
             linhas.append("  inclinação não negativa: não é reportada como taxa de evaporação.")
-        linhas.append(f"  R² (diagnóstico auxiliar): {_formatar(mas['r2'])}")
-        linhas.append(f"  erro padrão de b: {_formatar(mas['erro_padrao_b_g_s'])} g/s")
-        linhas.append(f"  resíduo máximo absoluto: {_formatar(mas['residuo_max_abs_g'])} g")
+        linhas.append(f"  R² (diagnóstico auxiliar): {_formatar(mas['r2'], 4)}")
+        linhas.append(f"  erro padrão de b: {_formatar(mas['erro_padrao_b_g_s'], 4, True)} g/s")
+        linhas.append(f"  resíduo máximo absoluto: {_formatar(mas['residuo_max_abs_g'], 4)} g")
     if mas.get("diagnosticos"):
         linhas.append(f"  diagnósticos: {mas['diagnosticos']}")
+    linhas.append("")
+    lr = info.get("lr")
+    if lr is not None:
+        linhas.append("")
+        linhas.append("Calor latente e produto L·r (NIST; ver constantes.py)")
+        linhas.append(f"  L (líquido): {_formatar(lr['L_kj_kg'], 1)} kJ/kg")
+        linhas.append(f"  L alternativo (sensibilidade): {_formatar(lr['L_alternativo_kj_kg'], 1)} kJ/kg")
+        if np.isfinite(lr["L_r_W"]):
+            linhas.append(
+                f"  L·r = {_formatar(lr['L_r_W'], 4)} W, IC95% "
+                f"[{_formatar(lr['L_r_ic95_inf_W'], 4)}, {_formatar(lr['L_r_ic95_sup_W'], 4)}] W"
+            )
+        else:
+            linhas.append("  L·r ausente: não há taxa de perda.")
     linhas.append("")
     linhas.append("Avisos de validação")
     if info["avisos"]:

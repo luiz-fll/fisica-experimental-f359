@@ -253,7 +253,6 @@ def test_processamento_real_grava_saidas_fora_dos_dados(tmp_path):
             "angulo_mergulhos.png",
             "massa_ajuste.png",
             "periodo_tempo.png",
-            "periodo_massa_exploratorio.png",
         ):
             assert (saida / nome).is_file(), f"{resultado['id']}/{nome}"
     assert not any(

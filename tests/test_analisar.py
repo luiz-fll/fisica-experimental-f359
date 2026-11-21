@@ -491,3 +491,11 @@ def test_cli_falha_de_processamento_nao_interrompe_o_lote(tmp_path, monkeypatch,
     assert "Processadas: 1. Com falha: 1." in saida
     assert "falha de cálculo simulada" in saida
     assert (tmp_path / "res" / "b_ok" / "resumo.txt").is_file()
+
+
+def test_liquido_desconhecido_e_erro_identificado(tmp_path):
+    pasta = criar_filmagem(
+        tmp_path, "liq_desc", {"condicoes.csv": f"{CABECALHO_CONDICOES}\nvinho,2026-10-19,23.4,53\n"}
+    )
+    texto = erros_de(pasta)
+    assert "condicoes.csv" in texto and "'liquido' desconhecido" in texto and "vinho" in texto

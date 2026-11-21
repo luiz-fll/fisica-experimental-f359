@@ -35,6 +35,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from final.constantes import t_critico_95
 from final.periodos import atribuir_janela
 
 MIN_LEITURAS_AJUSTE: int = 3
@@ -56,6 +57,8 @@ COLUNAS_AJUSTE_JANELA: tuple[str, ...] = (
     "residuo_max_abs_g",
     "status",
     "diagnosticos",
+    "ic95_taxa_g_min_inf",
+    "ic95_taxa_g_min_sup",
 )
 
 
@@ -71,6 +74,8 @@ def _resultado_ajuste(
         "erro_padrao_b_g_s": np.nan,
         "erro_padrao_residuos_g": np.nan,
         "residuo_max_abs_g": np.nan,
+        "ic95_b_g_s_inf": np.nan,
+        "ic95_b_g_s_sup": np.nan,
         "residuos_g": residuos if residuos is not None else np.full(n, np.nan),
         "status": status,
         "diagnosticos": diagnosticos,
@@ -130,11 +135,16 @@ def ajustar_linear(
     if n > 2:
         erro_padrao_residuos = float(np.sqrt(ss_res / (n - 2)))
         erro_padrao_b = erro_padrao_residuos / float(np.sqrt(sxx))
+        meia_largura_b = t_critico_95(n - 2) * erro_padrao_b
+        ic_b_inf = float(b - meia_largura_b)
+        ic_b_sup = float(b + meia_largura_b)
     else:
         # Com 2 leituras não há graus de liberdade residuais: o erro padrão é indefinido.
         diagnosticos.append("sem_graus_de_liberdade")
         erro_padrao_residuos = np.nan
         erro_padrao_b = np.nan
+        ic_b_inf = np.nan
+        ic_b_sup = np.nan
     return {
         "n": n,
         "a_g": float(a),
@@ -143,6 +153,8 @@ def ajustar_linear(
         "erro_padrao_b_g_s": erro_padrao_b,
         "erro_padrao_residuos_g": erro_padrao_residuos,
         "residuo_max_abs_g": float(np.max(np.abs(residuos))),
+        "ic95_b_g_s_inf": ic_b_inf,
+        "ic95_b_g_s_sup": ic_b_sup,
         "residuos_g": residuos,
         "status": "ok",
         "diagnosticos": diagnosticos,
@@ -169,6 +181,17 @@ def taxa_de_perda(b_g_s: float) -> dict:
     }
 
 
+def ic95_taxa_g_min(ic_b_inf: float, ic_b_sup: float, tipo_taxa: str) -> tuple[float, float]:
+    """IC95% da taxa positiva de perda em g/min, a partir do IC de b (g/s).
+
+    A taxa é −60·b; portanto o limite inferior da taxa vem do limite superior de b.
+    Só existe para tipo "perda"; caso contrário retorna (NaN, NaN).
+    """
+    if tipo_taxa != "perda" or not (np.isfinite(ic_b_inf) and np.isfinite(ic_b_sup)):
+        return (np.nan, np.nan)
+    return (-60.0 * ic_b_sup, -60.0 * ic_b_inf)
+
+
 def ajustar_janelas(
     massa: pd.DataFrame,
     limites: pd.DataFrame,
@@ -193,6 +216,9 @@ def ajustar_janelas(
         )
         ajuste = ajustar_linear(tempos[mascara], massas[mascara], min_leituras=min_leituras)
         taxa = taxa_de_perda(ajuste["b_g_s"])
+        ic_inf, ic_sup = ic95_taxa_g_min(
+            ajuste["ic95_b_g_s_inf"], ajuste["ic95_b_g_s_sup"], taxa["tipo_taxa"]
+        )
         linhas.append(
             {
                 "janela": int(limite["janela"]),
@@ -210,6 +236,8 @@ def ajustar_janelas(
                 "residuo_max_abs_g": ajuste["residuo_max_abs_g"],
                 "status": ajuste["status"],
                 "diagnosticos": ";".join(ajuste["diagnosticos"]),
+                "ic95_taxa_g_min_inf": ic_inf,
+                "ic95_taxa_g_min_sup": ic_sup,
             }
         )
     return pd.DataFrame(linhas, columns=list(COLUNAS_AJUSTE_JANELA))

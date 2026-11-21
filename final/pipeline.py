@@ -4,15 +4,20 @@
 
 - ``filmagem`` é o dicionário validado produzido por ``analisar.carregar_filmagem``
   (chaves ``id``, ``pasta``, ``tracker``, ``massa``, ``mergulhadas``, ``condicoes``,
-  ``avisos``). Não lê arquivos: a leitura é responsabilidade de ``analisar.py``.
-- ``pasta_saida`` é a pasta de resultados *desta* filmagem (por exemplo
-  ``final/resultados/agua_dia1``). Nunca pode estar dentro da pasta de dados.
-- ``t_fim`` é o maior instante entre ``massa.csv`` e ``mergulhadas.csv``; define as
-  janelas. Nenhuma janela é escolhida a partir dos resultados.
+  ``avisos``). Não lê arquivos.
+- ``pasta_saida`` é a pasta de resultados desta filmagem. Nunca pode estar dentro da
+  pasta de dados.
+- ``t_fim`` é o maior instante entre ``massa.csv`` e ``mergulhadas.csv``; define as janelas.
+
+Grandezas por filmagem e por janela:
+
+- taxa de perda de massa: r = −b (g/s e g/min), com IC95% a partir de b;
+- calor latente efetivo L do líquido (kJ/kg, NIST, ver ``constantes.py``);
+- produto L·r em W (cooling power), com IC95% propagado da taxa e da incerteza de L;
+- período médio dos ciclos com IC95% (t de Student, n − 1 graus de liberdade).
 
 Retorna um dicionário com ``id``, ``status`` (``"processada"``), ``pasta_saida``,
-``arquivos`` (CSVs gravados), ``graficos`` (PNGs gerados), ``graficos_omitidos``
-(pares nome e motivo) e ``tabelas`` (DataFrames, para inspeção).
+``arquivos``, ``graficos``, ``graficos_omitidos``, ``tabelas`` e ``propriedades``.
 """
 
 from __future__ import annotations
@@ -22,14 +27,20 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from final.constantes import l_r_watts, propriedades_liquido
 from final.graficos import (
     DadosInsuficientes,
     plotar_angulo_mergulhos,
     plotar_massa_ajuste,
-    plotar_periodo_massa,
     plotar_periodo_tempo,
 )
-from final.massa import COLUNAS_AJUSTE_JANELA, ajustar_janelas, ajustar_linear, taxa_de_perda
+from final.massa import (
+    COLUNAS_AJUSTE_JANELA,
+    ajustar_janelas,
+    ajustar_linear,
+    ic95_taxa_g_min,
+    taxa_de_perda,
+)
 from final.periodos import (
     COLUNAS_CICLOS,
     atribuir_janela,
@@ -41,18 +52,29 @@ from final.periodos import (
 from final.relatorio import gravar_resumo_texto, gravar_tabelas, montar_resumo_texto
 
 COLUNAS_AJUSTE_GLOBAL: tuple[str, ...] = (
+    "liquido",
     "n_leituras",
     "a_g",
     "b_g_s",
+    "ic95_b_g_s_inf",
+    "ic95_b_g_s_sup",
     "tipo_taxa",
     "taxa_g_s",
     "taxa_g_min",
+    "ic95_taxa_g_min_inf",
+    "ic95_taxa_g_min_sup",
     "r2",
     "erro_padrao_b_g_s",
     "erro_padrao_residuos_g",
     "residuo_max_abs_g",
     "status",
     "diagnosticos",
+    "L_kj_kg",
+    "L_alternativo_kj_kg",
+    "L_r_W",
+    "L_r_ic95_inf_W",
+    "L_r_ic95_sup_W",
+    "L_r_alternativo_W",
 )
 
 
@@ -63,28 +85,79 @@ def _verificar_saida_fora_dos_dados(pasta_saida: Path, origem: Path) -> None:
         raise PermissionError(f"pasta de saída dentro dos dados brutos: {pasta_saida}")
 
 
+def _lr_com_ic(taxa_g_s: float, taxa_g_min_inf: float, taxa_g_min_sup: float,
+               l_kj_kg: float, incerteza_l_rel: float, l_alt_kj_kg: float) -> dict:
+    """L·r em W com IC95%, propagando a incerteza relativa da taxa e a de L.
+
+    Propagação de primeira ordem: a meia-largura relativa combina a da taxa
+    (IC95% de b) com a incerteza de L do NIST, em quadratura. Sem taxa de perda
+    (inclinação não negativa), tudo é NaN.
+    """
+    nan = {"L_r_W": np.nan, "L_r_ic95_inf_W": np.nan, "L_r_ic95_sup_W": np.nan,
+           "L_r_alternativo_W": np.nan}
+    if not (np.isfinite(taxa_g_s) and taxa_g_s > 0 and np.isfinite(taxa_g_min_inf)):
+        return nan
+    # IC simétrico em b, portanto o ponto médio do IC em g/min é a própria taxa.
+    meia_rel_taxa = ((taxa_g_min_sup - taxa_g_min_inf) / 2.0) / ((taxa_g_min_sup + taxa_g_min_inf) / 2.0)
+    meia_rel = float(np.hypot(meia_rel_taxa, incerteza_l_rel))
+    lr = l_r_watts(l_kj_kg, taxa_g_s)
+    return {
+        "L_r_W": lr,
+        "L_r_ic95_inf_W": lr * (1.0 - meia_rel),
+        "L_r_ic95_sup_W": lr * (1.0 + meia_rel),
+        "L_r_alternativo_W": l_r_watts(l_alt_kj_kg, taxa_g_s),
+    }
+
+
+def _adicionar_lr_janelas(tabela: pd.DataFrame, props: dict) -> pd.DataFrame:
+    """Acrescenta L·r e IC por janela (apenas janelas com taxa de perda)."""
+    linhas = []
+    for _, linha in tabela.iterrows():
+        if linha["tipo_taxa"] == "perda":
+            lr = _lr_com_ic(
+                linha["taxa_g_s"], linha["ic95_taxa_g_min_inf"], linha["ic95_taxa_g_min_sup"],
+                props["L_kj_kg"], props["incerteza_L_relativa"], props["L_alternativo_kj_kg"],
+            )
+        else:
+            lr = _lr_com_ic(np.nan, np.nan, np.nan, props["L_kj_kg"], 0.0, props["L_alternativo_kj_kg"])
+        linhas.append({**linha.to_dict(), "L_kj_kg": props["L_kj_kg"], "L_r_W": lr["L_r_W"],
+                       "L_r_ic95_inf_W": lr["L_r_ic95_inf_W"], "L_r_ic95_sup_W": lr["L_r_ic95_sup_W"]})
+    return pd.DataFrame(linhas)
+
+
 def _tabela_ciclos(ciclos: pd.DataFrame, limites: pd.DataFrame) -> pd.DataFrame:
-    """Tabela de ciclos com a janela de cada ponto médio, em ordem fixa de colunas."""
     janela = atribuir_janela(ciclos["ponto_medio_s"], limites) if len(ciclos) else pd.Series(dtype="Int64")
     return ciclos.assign(janela=janela.astype("Int64").to_numpy())[[*COLUNAS_CICLOS, "janela"]]
 
 
-def _tabela_ajuste_global(ajuste: dict, taxa: dict) -> pd.DataFrame:
+def _tabela_ajuste_global(ajuste: dict, taxa: dict, ic: tuple[float, float], props: dict,
+                          lr: dict) -> pd.DataFrame:
     return pd.DataFrame(
         [
             {
+                "liquido": props["liquido"],
                 "n_leituras": ajuste["n"],
                 "a_g": ajuste["a_g"],
                 "b_g_s": taxa["b_g_s"],
+                "ic95_b_g_s_inf": ajuste["ic95_b_g_s_inf"],
+                "ic95_b_g_s_sup": ajuste["ic95_b_g_s_sup"],
                 "tipo_taxa": taxa["tipo_taxa"],
                 "taxa_g_s": taxa["taxa_g_s"],
                 "taxa_g_min": taxa["taxa_g_min"],
+                "ic95_taxa_g_min_inf": ic[0],
+                "ic95_taxa_g_min_sup": ic[1],
                 "r2": ajuste["r2"],
                 "erro_padrao_b_g_s": ajuste["erro_padrao_b_g_s"],
                 "erro_padrao_residuos_g": ajuste["erro_padrao_residuos_g"],
                 "residuo_max_abs_g": ajuste["residuo_max_abs_g"],
                 "status": ajuste["status"],
                 "diagnosticos": ";".join(ajuste["diagnosticos"]),
+                "L_kj_kg": props["L_kj_kg"],
+                "L_alternativo_kj_kg": props["L_alternativo_kj_kg"],
+                "L_r_W": lr["L_r_W"],
+                "L_r_ic95_inf_W": lr["L_r_ic95_inf_W"],
+                "L_r_ic95_sup_W": lr["L_r_ic95_sup_W"],
+                "L_r_alternativo_W": lr["L_r_alternativo_W"],
             }
         ],
         columns=list(COLUNAS_AJUSTE_GLOBAL),
@@ -112,6 +185,7 @@ def _tabela_resumo(info: dict) -> pd.DataFrame:
     cond = info["condicoes"]
     per = info["periodos"]
     mas = info["massa"]
+    lr = info["lr"]
     linhas = [
         ("id", info["id"], "texto"),
         ("liquido", cond["liquido"], "texto"),
@@ -126,6 +200,8 @@ def _tabela_resumo(info: dict) -> pd.DataFrame:
         ("n_ciclos_sem_suporte_massa", info["n_ciclos_sem_suporte"], "adimensional"),
         ("periodo_media_s", per["media_s"], "s"),
         ("periodo_desvio_padrao_s", per["desvio_padrao_s"], "s"),
+        ("periodo_ic95_inf_s", per["ic95_media_inf_s"], "s"),
+        ("periodo_ic95_sup_s", per["ic95_media_sup_s"], "s"),
         ("periodo_minimo_s", per["minimo_s"], "s"),
         ("periodo_maximo_s", per["maximo_s"], "s"),
         ("n_leituras_massa", mas["n_leituras"], "adimensional"),
@@ -134,12 +210,20 @@ def _tabela_resumo(info: dict) -> pd.DataFrame:
         ("massa_tipo_taxa", mas["tipo_taxa"], "texto"),
         ("massa_taxa_g_s", mas["taxa_g_s"], "g/s"),
         ("massa_taxa_g_min", mas["taxa_g_min"], "g/min"),
+        ("massa_taxa_ic95_inf_g_min", mas["ic95_taxa_g_min_inf"], "g/min"),
+        ("massa_taxa_ic95_sup_g_min", mas["ic95_taxa_g_min_sup"], "g/min"),
         ("massa_r2", mas["r2"], "adimensional"),
         ("massa_erro_padrao_b_g_s", mas["erro_padrao_b_g_s"], "g/s"),
         ("massa_erro_padrao_residuos_g", mas["erro_padrao_residuos_g"], "g"),
         ("massa_residuo_max_abs_g", mas["residuo_max_abs_g"], "g"),
         ("massa_status", mas["status"], "texto"),
         ("massa_diagnosticos", mas["diagnosticos"], "texto"),
+        ("L_kj_kg", lr["L_kj_kg"], "kJ/kg"),
+        ("L_alternativo_kj_kg", lr["L_alternativo_kj_kg"], "kJ/kg"),
+        ("L_r_W", lr["L_r_W"], "W"),
+        ("L_r_ic95_inf_W", lr["L_r_ic95_inf_W"], "W"),
+        ("L_r_ic95_sup_W", lr["L_r_ic95_sup_W"], "W"),
+        ("L_r_alternativo_W", lr["L_r_alternativo_W"], "W"),
         ("n_avisos_validacao", len(info["avisos"]), "adimensional"),
         ("graficos_gerados", ";".join(info["graficos"]), "texto"),
         ("graficos_omitidos", ";".join(f"{n}({m})" for n, m in info["graficos_omitidos"]), "texto"),
@@ -159,6 +243,9 @@ def processar_filmagem(filmagem: dict, duracao_janela_s: float, pasta_saida: Pat
     mergulhos = filmagem["mergulhadas"]
     condicoes = filmagem["condicoes"]
 
+    props = propriedades_liquido(condicoes["liquido"])
+    props["liquido"] = condicoes["liquido"]
+
     t_fim = float(max(massa["tempo_seg"].max(), mergulhos["tempo_seg"].max()))
     limites = definir_limites_janelas(t_fim, duracao_janela_s)
 
@@ -167,10 +254,17 @@ def processar_filmagem(filmagem: dict, duracao_janela_s: float, pasta_saida: Pat
 
     ajuste = ajustar_linear(massa["tempo_seg"].to_numpy(dtype=float), massa["massa_g"].to_numpy(dtype=float))
     taxa = taxa_de_perda(ajuste["b_g_s"])
-    tabela_ajuste = _tabela_ajuste_global(ajuste, taxa)
+    ic_global = ic95_taxa_g_min(ajuste["ic95_b_g_s_inf"], ajuste["ic95_b_g_s_sup"], taxa["tipo_taxa"])
+    lr = (
+        _lr_com_ic(taxa["taxa_g_s"], ic_global[0], ic_global[1], props["L_kj_kg"],
+                   props["incerteza_L_relativa"], props["L_alternativo_kj_kg"])
+        if taxa["tipo_taxa"] == "perda"
+        else _lr_com_ic(np.nan, np.nan, np.nan, props["L_kj_kg"], 0.0, props["L_alternativo_kj_kg"])
+    )
+    tabela_ajuste = _tabela_ajuste_global(ajuste, taxa, ic_global, props, lr)
     tabela_residuos = _tabela_residuos(massa, ajuste)
 
-    tabela_massa_janelas = ajustar_janelas(massa, limites)
+    tabela_massa_janelas = _adicionar_lr_janelas(ajustar_janelas(massa, limites), props)
     tabela_periodo_janelas = periodos_por_janela(ciclos, limites)
     estatisticas = estatisticas_periodos(ciclos["periodo_s"].to_numpy(dtype=float))
     n_sem_suporte = int((~ciclos["suporte_massa"].astype(bool)).sum()) if len(ciclos) else 0
@@ -186,22 +280,12 @@ def processar_filmagem(filmagem: dict, duracao_janela_s: float, pasta_saida: Pat
         else:
             graficos.append(nome)
 
-    gerar(
-        "angulo_mergulhos.png",
-        lambda caminho: plotar_angulo_mergulhos(tracker, mergulhos, id_filmagem, caminho),
-    )
-    gerar(
-        "massa_ajuste.png",
-        lambda caminho: plotar_massa_ajuste(massa, ajuste, id_filmagem, caminho, limites),
-    )
-    gerar(
-        "periodo_tempo.png",
-        lambda caminho: plotar_periodo_tempo(ciclos, id_filmagem, caminho, limites),
-    )
-    gerar(
-        "periodo_massa_exploratorio.png",
-        lambda caminho: plotar_periodo_massa(ciclos, id_filmagem, caminho),
-    )
+    gerar("angulo_mergulhos.png",
+          lambda caminho: plotar_angulo_mergulhos(tracker, mergulhos, id_filmagem, caminho))
+    gerar("massa_ajuste.png",
+          lambda caminho: plotar_massa_ajuste(massa, ajuste, id_filmagem, caminho, limites))
+    gerar("periodo_tempo.png",
+          lambda caminho: plotar_periodo_tempo(ciclos, id_filmagem, caminho, limites))
 
     info = {
         "id": id_filmagem,
@@ -225,12 +309,15 @@ def processar_filmagem(filmagem: dict, duracao_janela_s: float, pasta_saida: Pat
             "tipo_taxa": taxa["tipo_taxa"],
             "taxa_g_s": taxa["taxa_g_s"],
             "taxa_g_min": taxa["taxa_g_min"],
+            "ic95_taxa_g_min_inf": ic_global[0],
+            "ic95_taxa_g_min_sup": ic_global[1],
             "r2": ajuste["r2"],
             "erro_padrao_b_g_s": ajuste["erro_padrao_b_g_s"],
             "erro_padrao_residuos_g": ajuste["erro_padrao_residuos_g"],
             "residuo_max_abs_g": ajuste["residuo_max_abs_g"],
             "diagnosticos": ";".join(ajuste["diagnosticos"]),
         },
+        "lr": {**{"L_kj_kg": props["L_kj_kg"], "L_alternativo_kj_kg": props["L_alternativo_kj_kg"]}, **lr},
         "avisos": [str(p) for p in filmagem.get("avisos", [])],
         "graficos": graficos,
         "graficos_omitidos": omitidos,
@@ -240,14 +327,13 @@ def processar_filmagem(filmagem: dict, duracao_janela_s: float, pasta_saida: Pat
         "periodos.csv": tabela_ciclos,
         "massa_ajuste.csv": tabela_ajuste,
         "massa_residuos.csv": tabela_residuos,
-        "massa_por_janela.csv": tabela_massa_janelas[list(COLUNAS_AJUSTE_JANELA)],
+        "massa_por_janela.csv": tabela_massa_janelas[[*COLUNAS_AJUSTE_JANELA, "L_kj_kg", "L_r_W",
+                                                       "L_r_ic95_inf_W", "L_r_ic95_sup_W"]],
         "periodo_por_janela.csv": tabela_periodo_janelas,
         "resumo.csv": _tabela_resumo(info),
     }
     arquivos = gravar_tabelas(pasta_saida, tabelas, origem=origem)
-    arquivos.append(
-        gravar_resumo_texto(pasta_saida, montar_resumo_texto(info), origem=origem)
-    )
+    arquivos.append(gravar_resumo_texto(pasta_saida, montar_resumo_texto(info), origem=origem))
 
     return {
         "id": id_filmagem,
@@ -257,4 +343,6 @@ def processar_filmagem(filmagem: dict, duracao_janela_s: float, pasta_saida: Pat
         "graficos": graficos,
         "graficos_omitidos": omitidos,
         "tabelas": tabelas,
+        "propriedades": props,
+        "massa_df": massa,
     }

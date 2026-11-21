@@ -12,17 +12,24 @@ Ensaio
 
 Períodos (intervalos entre mergulhos consecutivos)
   ciclos: 33 (sem massa interpolada: 2)
-  média: 18.1577 s
-  desvio-padrão amostral: 5.28127 s
-  mínimo: 7.028 s; máximo: 25.195 s
+  média: 18.16 s
+  desvio-padrão amostral: 5.28 s
+  IC95% da média: [16.29, 20.03] s
+  mínimo: 7.03 s; máximo: 25.19 s
 
 Massa (ajuste linear global m(t) = a + b·t)
   leituras: 30; status: ok
-  b = -0.000529659 g/s
-  taxa positiva de perda: 0.000529659 g/s (0.0317795 g/min)
-  R² (diagnóstico auxiliar): 0.985936
+  b (inclinação) = -5.2966e-04 g/s
+  taxa de perda = −b = 5.2966e-04 g/s (0.0318 g/min), IC95% [0.0303, 0.0332] g/min
+  R² (diagnóstico auxiliar): 0.9859
   erro padrão de b: 1.1955e-05 g/s
-  resíduo máximo absoluto: 0.0314508 g
+  resíduo máximo absoluto: 0.0315 g
+
+
+Calor latente e produto L·r (NIST; ver constantes.py)
+  L (líquido): 748.8 kJ/kg
+  L alternativo (sensibilidade): 748.8 kJ/kg
+  L·r = 0.3966 W, IC95% [0.3644, 0.4288] W
 
 Avisos de validação
   - mergulhadas.csv: 3 mergulho(s) fora do intervalo de massa.csv [20.019, 600.007] s, linhas [2, 3, 35]
@@ -31,7 +38,6 @@ Gráficos
   gerado: angulo_mergulhos.png
   gerado: massa_ajuste.png
   gerado: periodo_tempo.png
-  gerado: periodo_massa_exploratorio.png
 
 Limitações
   Resultados são estimativas e diagnósticos. Não são uma verificação da hipótese física.

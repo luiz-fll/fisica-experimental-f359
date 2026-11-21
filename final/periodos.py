@@ -29,6 +29,8 @@ import math
 import numpy as np
 import pandas as pd
 
+from final.constantes import t_critico_95
+
 ORIGEM_TEMPORAL_S: float = 0.0
 DURACAO_JANELA_PADRAO_S: float = 200.0
 MIN_MERGULHOS_PARA_PERIODO: int = 2
@@ -125,6 +127,9 @@ COLUNAS_ESTATISTICAS_JANELA: tuple[str, ...] = (
     "n_ciclos",
     "media_s",
     "desvio_padrao_s",
+    "erro_padrao_media_s",
+    "ic95_media_inf_s",
+    "ic95_media_sup_s",
     "minimo_s",
     "maximo_s",
     "status",
@@ -221,14 +226,27 @@ def estatisticas_periodos(periodos_s: np.ndarray) -> dict:
             "n": 0,
             "media_s": np.nan,
             "desvio_padrao_s": np.nan,
+            "erro_padrao_media_s": np.nan,
+            "ic95_media_inf_s": np.nan,
+            "ic95_media_sup_s": np.nan,
             "minimo_s": np.nan,
             "maximo_s": np.nan,
         }
     desvio = float(valores.std(ddof=1)) if n >= MIN_PERIODOS_PARA_DESVIO else np.nan
+    if n >= MIN_PERIODOS_PARA_DESVIO:
+        erro_media = desvio / float(np.sqrt(n))
+        meia = t_critico_95(n - 1) * erro_media
+        media = float(valores.mean())
+        ic_inf, ic_sup = media - meia, media + meia
+    else:
+        erro_media = ic_inf = ic_sup = np.nan
     return {
         "n": n,
         "media_s": float(valores.mean()),
         "desvio_padrao_s": desvio,
+        "erro_padrao_media_s": erro_media,
+        "ic95_media_inf_s": ic_inf,
+        "ic95_media_sup_s": ic_sup,
         "minimo_s": float(valores.min()),
         "maximo_s": float(valores.max()),
     }
@@ -272,6 +290,9 @@ def periodos_por_janela(ciclos: pd.DataFrame, limites: pd.DataFrame) -> pd.DataF
                 "n_ciclos": estat["n"],
                 "media_s": estat["media_s"],
                 "desvio_padrao_s": estat["desvio_padrao_s"],
+                "erro_padrao_media_s": estat["erro_padrao_media_s"],
+                "ic95_media_inf_s": estat["ic95_media_inf_s"],
+                "ic95_media_sup_s": estat["ic95_media_sup_s"],
                 "minimo_s": estat["minimo_s"],
                 "maximo_s": estat["maximo_s"],
                 "status": _status_periodos(estat["n"]),

@@ -169,3 +169,38 @@ Este arquivo é cumulativo e append-only. Cada execução de trabalho acrescenta
 
 ### Pendências
 - Interpretação científica das taxas/períodos entre líquidos; exame de resíduos de alcool70_dia3 e desvio de alcool70_dia2.
+
+## 2026-11-20 — Etapa 4: calor latente NIST, L·r com incerteza e comparação dia a dia
+
+### Decisões do pesquisador
+- Comparação principal dia a dia; variação entre dias à parte.
+- Mistura "álcool 70%" = etanol a 70 % em massa (w/w); "álcool 99%" = isopropanol.
+- Fonte do calor latente: NIST. Grandeza comparada com o período: L·r.
+- Corrida piloto do relatório parcial excluída; mergulhos sem alteração; critério formal adiado.
+
+### Alterações
+- `final/constantes.py` (novo): propriedades NIST/JANAF a 298,15 K; pressão de vapor da água (JANAF), etanol e isopropanol (Antoine); L da mistura (primário: fração mássica do vapor, Raoult; alternativo: fração do líquido); quantil t; conversão L·r.
+- `final/comparacao.py` (novo): tabelas e gráficos por dia e entre dias; hipóteses descritivas (ordens e inclinação log–log, n = 3).
+- `final/massa.py`: IC95% de b e da taxa.
+- `final/periodos.py`: IC95% da média dos períodos.
+- `final/pipeline.py`: L, L·r com IC, colunas novas em massa_ajuste, massa_por_janela, resumo; gráfico exploratório período × massa removido.
+- `final/graficos.py`: formatação fixa; figuras de comparação; ticks log legíveis.
+- `final/relatorio.py`: resumo com formatos fixos e seção de calor latente/L·r.
+- `final/analisar.py`: validação do nome do líquido; comparação ao fim do lote.
+- `requirements.txt`: scipy ≥ 1.11; mínimos verificados em Python 3.10, 3.11 e 3.12.
+- Testes: `test_constantes_incertezas.py`, `test_comparacao.py`, `test_referencia_etapa4.py`; testes existentes atualizados. Total 210.
+- Documentação: PROJECT (6.5, 5, 7, 9), TASKS (Prioridade 5), CURRENT_STATE, HANDOFF, README raiz e `final/README.md`.
+
+### Verificações
+- `python -m pytest`: 210 passed.
+- Referência independente das nove filmagens (taxa, IC95%, L, L·r): coincide, erro relativo ≤ 1e-9.
+- Mutações: L primário trocado (detectado); quantil normal no lugar do t (3 testes); limites do IC invertidos (14 testes).
+- Versões mínimas: 210 testes passam com numpy 1.26.4, pandas 2.1.4, matplotlib 3.8.4, scipy 1.11.4 e pytest 7.4.4 em Python 3.10.20, 3.11.15 e 3.12.3.
+- Execução oficial: 9 processadas, 0 falhas, comparação gerada; saídas em `final/resultados/` (112 arquivos).
+- Dados brutos, dados_old, dados_exemplo e parcial não modificados.
+
+### Pendências
+- Critério formal de mergulho e segundo anotador.
+- Decisão sobre a forma da análise principal (dia a dia agregado ou global com dia como fator).
+- Análise de sensibilidade (L alternativo, janelas, critério de mergulho).
+- Pressão de vapor do isopropanol a 25 °C é extrapolação; dependência de L com T não corrigida.

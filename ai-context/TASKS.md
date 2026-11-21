@@ -61,6 +61,23 @@ Este plano reflete o estado observado em 2026-11-20. O pedido explícito do usu�
 
 *Verificação: 168 testes passando; regressão numérica dos nove conjuntos contra a tabela de referência; amostra ponta a ponta de agua_dia1; dados brutos intactos.*
 
+## Prioridade 5 — Etapa 4: calor latente, L·r com incerteza e comparação dia a dia
+
+- [x] Substituir a comparação com massa por L·r (produto do calor latente pela taxa). *(`final/constantes.py`, `pipeline.py`)*
+- [x] Calor latente de NIST para água, etanol e isopropanol; mistura 70 % w/w por composição do vapor (Raoult), com alternativo como sensibilidade. *(`constantes.py`)*
+- [x] IC95% da inclinação, da taxa, da média dos períodos e de L·r. *(`massa.py`, `periodos.py`, `pipeline.py`)*
+- [x] Formatação numérica fixa em gráficos e textos (corrige a leitura da taxa do isopropanol).
+- [x] Comparação principal dia a dia, com condições do próprio dia; variação entre dias à parte. *(`final/comparacao.py`)*
+- [x] Gráficos de comparação: massa, períodos, τ × L·r (log–log), taxas por janela, e variação entre dias. *(`final/graficos.py`)*
+- [x] Remoção do gráfico exploratório período × massa (substituído pela comparação com L·r).
+- [x] Validação do nome do líquido em `condicoes.csv`.
+- [x] Referência independente das grandezas da etapa 4 sobre os nove conjuntos reais.
+- [x] Versões mínimas verificadas em Python 3.10, 3.11 e 3.12 (scipy incluído).
+
+*Verificação: 210 testes passando; referência independente coincide (rel. 1e-9); três mutações detectadas; execução oficial em `final/resultados/` (112 arquivos).*
+
+**Não feito (adiado pelo pesquisador):** critério formal de mergulho e segundo anotador; análise de sensibilidade (L alternativo, janelas, critério); decisão entre análise dia a dia agregada e global com dia como fator.
+
 ## Bloqueios e decisões pendentes
 
 - **Nenhum bloqueio de implementação.** Interpretação dos cálculos é responsabilidade do pesquisador: inclinações não negativas não são taxas (ver `PROJECT.md` 6.4).
@@ -76,7 +93,7 @@ Este plano reflete o estado observado em 2026-11-20. O pedido explícito do usu�
 
 ## Em andamento
 
-Nenhuma. Prioridades 0–4 concluídas. Próximas ações possíveis: revisão científica dos casos de baixo R² com os resíduos; comparação entre líquidos em etapa própria.
+Nenhuma. Etapa 4 concluída; próximas ações estão em `CURRENT_STATE.md`.
 
 ## Bloqueios
 

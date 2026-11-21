@@ -6,23 +6,30 @@ Condições (constantes adotadas para o ensaio, um registro por filmagem)
   temperatura: 23.9 °C; umidade: 64 %
 
 Ensaio
-  instante final considerado: 610.29 s
+  instante final considerado: 610.290 s
   janelas de 200 s: 3
   mergulhos anotados: 26
 
 Períodos (intervalos entre mergulhos consecutivos)
   ciclos: 25 (sem massa interpolada: 0)
-  média: 23.1965 s
-  desvio-padrão amostral: 4.49102 s
-  mínimo: 15.822 s; máximo: 29.884 s
+  média: 23.20 s
+  desvio-padrão amostral: 4.49 s
+  IC95% da média: [21.34, 25.05] s
+  mínimo: 15.82 s; máximo: 29.88 s
 
 Massa (ajuste linear global m(t) = a + b·t)
   leituras: 30; status: ok
-  b = -0.000115943 g/s
-  taxa positiva de perda: 0.000115943 g/s (0.00695655 g/min)
-  R² (diagnóstico auxiliar): 0.967318
-  erro padrão de b: 4.02747e-06 g/s
-  resíduo máximo absoluto: 0.0127521 g
+  b (inclinação) = -1.1594e-04 g/s
+  taxa de perda = −b = 1.1594e-04 g/s (0.0070 g/min), IC95% [0.0065, 0.0075] g/min
+  R² (diagnóstico auxiliar): 0.9673
+  erro padrão de b: 4.0275e-06 g/s
+  resíduo máximo absoluto: 0.0128 g
+
+
+Calor latente e produto L·r (NIST; ver constantes.py)
+  L (líquido): 2442.4 kJ/kg
+  L alternativo (sensibilidade): 2442.4 kJ/kg
+  L·r = 0.2832 W, IC95% [0.2630, 0.3033] W
 
 Avisos de validação
   - mergulhadas.csv: 1 mergulho(s) fora do intervalo de massa.csv [20.019, 600.007] s, linhas [27]
@@ -31,7 +38,6 @@ Gráficos
   gerado: angulo_mergulhos.png
   gerado: massa_ajuste.png
   gerado: periodo_tempo.png
-  gerado: periodo_massa_exploratorio.png
 
 Limitações
   Resultados são estimativas e diagnósticos. Não são uma verificação da hipótese física.

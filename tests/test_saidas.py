@@ -12,7 +12,6 @@ from final.graficos import (
     DadosInsuficientes,
     plotar_angulo_mergulhos,
     plotar_massa_ajuste,
-    plotar_periodo_massa,
     plotar_periodo_tempo,
 )
 from final.massa import ajustar_linear, taxa_de_perda
@@ -54,7 +53,6 @@ def test_figuras_sao_gravadas_como_png(tmp_path):
         ("a.png", lambda c: plotar_angulo_mergulhos(f["tracker"], f["mergulhadas"], "x", c)),
         ("b.png", lambda c: plotar_massa_ajuste(f["massa"], ajuste, "x", c, limites)),
         ("c.png", lambda c: plotar_periodo_tempo(ciclos, "x", c, limites)),
-        ("d.png", lambda c: plotar_periodo_massa(ciclos, "x", c)),
     ]:
         caminho = chamada(tmp_path / nome)
         assert caminho.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
@@ -86,12 +84,6 @@ def test_periodo_tempo_com_um_ciclo_e_omitido(tmp_path):
     ciclos = construir_ciclos(pd.DataFrame({"tempo_seg": [2.0, 8.0]}), filmagem_sintetica(tmp_path)["massa"])
     with pytest.raises(DadosInsuficientes, match="1 ciclo"):
         plotar_periodo_tempo(ciclos, "x", tmp_path / "p.png")
-
-
-def test_periodo_massa_sem_suporte_e_omitido(tmp_path):
-    ciclos = construir_ciclos(pd.DataFrame({"tempo_seg": [60.0, 70.0, 80.0]}), filmagem_sintetica(tmp_path)["massa"])
-    with pytest.raises(DadosInsuficientes, match="massa interpolada"):
-        plotar_periodo_massa(ciclos, "x", tmp_path / "p.png")
 
 
 def test_graficos_nao_alteram_os_dados(tmp_path):
@@ -145,9 +137,13 @@ def test_resumo_texto_declara_motivos_e_limitacoes():
         "t_fim_s": 600.0, "duracao_janela_s": 200.0, "n_janelas": 3, "n_mergulhos": 2,
         "periodos": {"n": 1, "media_s": 6.0, "desvio_padrao_s": np.nan, "minimo_s": 6.0, "maximo_s": 6.0},
         "n_ciclos_sem_suporte": 0,
-        "massa": {"n_leituras": 3, "status": "ok", "b_g_s": -1e-4, "tipo_taxa": "perda", "taxa_g_s": 1e-4,
-                  "taxa_g_min": 6e-3, "r2": 0.9, "erro_padrao_b_g_s": 1e-6, "residuo_max_abs_g": 0.01,
+        "massa": {"n_leituras": 3, "status": "ok", "a_g": 41.0, "b_g_s": -1e-4, "tipo_taxa": "perda",
+                  "taxa_g_s": 1e-4, "taxa_g_min": 6e-3, "ic95_taxa_g_min_inf": 5e-3,
+                  "ic95_taxa_g_min_sup": 7e-3, "r2": 0.9, "erro_padrao_b_g_s": 1e-6,
+                  "erro_padrao_residuos_g": 0.01, "residuo_max_abs_g": 0.01,
                   "diagnosticos": "poucos_pontos"},
+        "lr": {"L_kj_kg": 2442.4, "L_alternativo_kj_kg": 2442.4, "L_r_W": 0.244,
+               "L_r_ic95_inf_W": 0.2, "L_r_ic95_sup_W": 0.3, "L_r_alternativo_W": 0.244},
         "avisos": ["mergulhadas.csv: aviso de teste"],
         "graficos": ["angulo_mergulhos.png"],
         "graficos_omitidos": [("periodo_tempo.png", "1 ciclo(s)")],
@@ -199,7 +195,6 @@ def test_pipeline_registra_graficos_omitidos_com_motivo(tmp_path):
     resultado = processar_filmagem(f, 200.0, tmp_path / "res" / "sintetica")
     omitidos = dict(resultado["graficos_omitidos"])
     assert "periodo_tempo.png" in omitidos and "1 ciclo" in omitidos["periodo_tempo.png"]
-    assert "periodo_massa_exploratorio.png" in omitidos
     texto = (tmp_path / "res" / "sintetica" / "resumo.txt").read_text(encoding="utf-8")
     assert "omitido: periodo_tempo.png" in texto
 
@@ -228,3 +223,21 @@ def test_pipeline_nao_altera_as_tabelas_de_entrada(tmp_path):
     processar_filmagem(f, 200.0, tmp_path / "res" / "sintetica")
     for chave, tabela in antes.items():
         pd.testing.assert_frame_equal(f[chave], tabela)
+
+
+def test_pipeline_grava_L_lr_e_intervalos(tmp_path):
+    origem = tmp_path / "dados" / "sintetica"
+    origem.mkdir(parents=True)
+    f = filmagem_sintetica(origem)
+    f["condicoes"]["liquido"] = "alcool 99%"
+    processar_filmagem(f, 200.0, tmp_path / "res" / "sintetica")
+    ajuste = pd.read_csv(tmp_path / "res" / "sintetica" / "massa_ajuste.csv").iloc[0]
+    assert ajuste["liquido"] == "alcool 99%"
+    assert ajuste["L_kj_kg"] == pytest.approx(748.8, abs=0.1)
+    assert ajuste["L_r_W"] == pytest.approx(ajuste["L_kj_kg"] * 1e3 * ajuste["taxa_g_s"] * 1e-3, rel=1e-9)
+    assert ajuste["ic95_taxa_g_min_inf"] < ajuste["taxa_g_min"] < ajuste["ic95_taxa_g_min_sup"]
+    assert ajuste["L_r_ic95_inf_W"] < ajuste["L_r_W"] < ajuste["L_r_ic95_sup_W"]
+    resumo = pd.read_csv(tmp_path / "res" / "sintetica" / "resumo.csv")
+    assert {"L_kj_kg", "L_r_W", "periodo_ic95_inf_s", "massa_taxa_ic95_inf_g_min"} <= set(resumo["grandeza"])
+    texto = (tmp_path / "res" / "sintetica" / "resumo.txt").read_text(encoding="utf-8")
+    assert "L·r =" in texto and "IC95%" in texto

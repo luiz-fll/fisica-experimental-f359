@@ -1,0 +1,7 @@
+Comparação entre filmagens (gerada automaticamente).
+Principal: por_dia/ (líquidos no mesmo dia, mesmas condições). Ambiente: entre_dias/.
+Líquidos: 'agua'; 'alcool 70%' = etanol a 70 % em massa (w/w); 'alcool 99%' = isopropanol.
+L: NIST (constantes.py). L·r em W; IC95% por propagação de primeira ordem.
+Ordenações e inclinações em hipoteses_dia.csv são descritivas (n = 3 por dia).
+
+Nenhuma figura omitida.

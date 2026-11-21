@@ -122,6 +122,7 @@ Implementada em `final/analisar.py` (Prioridade 1). Validação em memória; nen
 - campo vazio, valor não numérico, `nan` ou `inf` (linha identificada);
 - tempos anteriores à origem (0 s), duplicados ou não ordenados (linhas identificadas);
 - `tracker.csv` com menos de 2 registros; `massa.csv` com menos de 3 leituras (`MIN_LEITURAS_AJUSTE`); `mergulhadas.csv` com menos de 2 mergulhos (`MIN_MERGULHOS_PARA_PERIODO`);
+- `condicoes.csv` com `liquido` fora de `agua`, `alcool 70%`, `alcool 99%` (necessário para o calor latente, `final/constantes.py`);
 - `condicoes.csv` com número de linhas diferente de 1, líquido ou dia vazios, temperatura ou umidade não numéricas ou não finitas, umidade fora de [0, 100].
 
 **Avisos** (a filmagem é válida, o aviso é reportado):
@@ -150,7 +151,7 @@ A tabela de ciclos deve conter, no mínimo:
 - período em segundos;
 - massa interpolada no ponto médio, se houver suporte.
 
-Interpolar linearmente a massa no ponto médio temporal, somente dentro do domínio coberto por `massa.csv`. Não extrapolar. Sem suporte, deixar ausente e registrar diagnóstico.
+Interpolar linearmente a massa no ponto médio temporal, somente dentro do domínio coberto por `massa.csv`. Não extrapolar. Sem suporte, deixar ausente e registrar diagnóstico. A massa por ciclo é auxiliar: a variável comparada com o período é o produto L·r (§6.5).
 
 ### 6.2 Estatísticas globais
 
@@ -195,6 +196,18 @@ Produzir ajuste global e ajustes locais por janela quando houver pontos suficien
 
 Não aplicar filtros, remoção de outliers ou suavização como padrão. Métodos alternativos devem ser complementares e identificados.
 
+### 6.5 Calor latente, produto L·r e comparação dia a dia (decisões de 2026-11-20)
+
+- **Fonte:** NIST Chemistry WebBook e JANAF, 298,15 K, em `final/constantes.py`. Água: ΔvapH 44,00 kJ/mol (M 18,015). Etanol: ΔvapH 42,3 ± 0,4 kJ/mol (M 46,068). Isopropanol: ΔvapH 45 ± 3 kJ/mol (M 60,095).
+- **Líquidos (`condicoes.csv`):** `agua`; `alcool 70%` = etanol a **70 % em massa (w/w)** em água; `alcool 99%` = **isopropanol**.
+- **L (kJ/kg):** líquido puro, L = ΔvapH/M. Mistura: primário = média das frações mássicas do **vapor** (Raoult ideal, composição inicial, pressões NIST); alternativo = média pela fração do líquido, como sensibilidade. A pressão do isopropanol a 25 °C é extrapolação da equação de Antoine NIST (faixa 330–362 K) e é usada só para a composição do vapor da mistura.
+- **Grandeza comparada com o período:** L·r em W, com r = −b (taxa de perda, g/s). IC95% de L·r por propagação de primeira ordem: meia-largura relativa da taxa (IC95% de b) combinada em quadratura com a incerteza de L do NIST. A faixa primário–alternativo da mistura é reportada separadamente, não entra no IC.
+- **Incerteza:** IC95% da inclinação (t de Student, n − 2 graus de liberdade); IC95% da média dos períodos (t, n − 1). Não se usa R² como critério.
+- **Comparação principal dia a dia:** em cada dia, os três líquidos (um pássaro cada) são comparados entre si, com as condições do próprio dia. Isso isola diferenças de líquido das variações de ambiente. A variação entre dias é reportada à parte, para o efeito do ambiente.
+- **Corrida piloto** (figuras 3–6 do relatório parcial, 25,4 °C e 80 %) fica **excluída**; a análise usa as nove filmagens finais.
+- **Mergulhos:** a anotação manual não é alterada por esta etapa. O critério formal de mergulho está adiado.
+- **Hipóteses:** as ordenações previstas (H2 e a relação τ ∝ 1/(L·r)) são registradas como comparações **descritivas** (n = 3 por dia); a inclinação log–log com três pontos é descritiva, sem inferência. Nenhuma hipótese é declarada validada ou refutada por esta análise.
+
 ## 7. Saídas
 
 Implementadas em `final/pipeline.py`, `final/graficos.py` e `final/relatorio.py` (Prioridade 3). Para cada filmagem válida, a CLI grava em `<saida>/<id_da_filmagem>/`:
@@ -212,9 +225,18 @@ Implementadas em `final/pipeline.py`, `final/graficos.py` e `final/relatorio.py`
 
 **Gráficos (PNG)**, cada um omitido com motivo registrado em `resumo.txt` quando não há dados suficientes:
 - `angulo_mergulhos.png`: ângulo × tempo, com os mergulhos marcados.
-- `massa_ajuste.png`: massa × tempo, com a reta do ajuste global e as fronteiras das janelas.
+- `massa_ajuste.png`: massa × tempo, com a reta do ajuste global, taxa em g/min com IC95% e as fronteiras das janelas.
 - `periodo_tempo.png`: período × tempo do ponto médio.
-- `periodo_massa_exploratorio.png`: período × massa interpolada, somente ciclos com suporte. Exploratório; não é verificação da hipótese.
+
+**Colunas adicionadas nesta etapa:** `massa_ajuste.csv` e `resumo.csv` trazem `liquido`, `L_kj_kg`, `L_alternativo_kj_kg`, `L_r_W` (com `L_r_ic95_inf_W` e `L_r_ic95_sup_W`), `L_r_alternativo_W`, IC95% da taxa (`ic95_taxa_g_min_inf/sup`) e IC95% da inclinação (`ic95_b_g_s_inf/sup`). `periodo_por_janela.csv` traz `erro_padrao_media_s` e IC95% da média. `massa_por_janela.csv` traz L·r por janela.
+
+**Comparação entre filmagens** em `<saida>/comparacao/`:
+- `por_dia/<dia>/comparacao_dia.csv`: uma linha por líquido, no mesmo dia.
+- `por_dia/<dia>/hipoteses_dia.csv`: ordenações observadas e previstas, com notas descritivas.
+- `por_dia/<dia>/grafico_massa.png`, `grafico_periodos.png`, `grafico_tau_vs_lr.png`, `grafico_taxas_janelas.png`.
+- `entre_dias/variacao_por_liquido.csv` (inclui T e UR de cada filmagem) e `grafico_entre_dias.png`.
+- `entre_dias/pares_janela.csv`: pares período–L·r por janela, todas as filmagens.
+- `leia_me.txt`: o que foi gerado e o que foi omitido, com motivo.
 
 Os diagnósticos por janela ficam nas tabelas `massa_por_janela.csv` e `periodo_por_janela.csv`; não há figura específica para eles.
 
@@ -247,7 +269,9 @@ Assinaturas e responsabilidades (todas implementadas e testadas até a Prioridad
 | `periodos.py` | `definir_limites_janelas`, `atribuir_janela`, `construir_ciclos`, `interpolar_massa`, `estatisticas_periodos`, `periodos_por_janela` | implementadas e testadas (Prioridade 2) |
 | `massa.py` | `ajustar_linear`, `taxa_de_perda`, `ajustar_janelas` | implementadas e testadas (Prioridade 2) |
 | `pipeline.py` | `processar_filmagem(filmagem, duracao_janela_s, pasta_saida)` | implementada (Prioridade 3); `pasta_saida` é a pasta da própria filmagem |
-| `graficos.py` | `plotar_angulo_mergulhos`, `plotar_massa_ajuste`, `plotar_periodo_tempo`, `plotar_periodo_massa`; exceção `DadosInsuficientes(motivo)` | implementada (Prioridade 3); figuras sem dados suficientes levantam `DadosInsuficientes` |
+| `graficos.py` | `plotar_angulo_mergulhos`, `plotar_massa_ajuste`, `plotar_periodo_tempo`; comparação: `plotar_comparacao_massa`, `plotar_comparacao_periodos`, `plotar_tau_vs_lr`, `plotar_taxas_janelas`, `plotar_entre_dias`; exceção `DadosInsuficientes(motivo)` | implementada; figuras sem dados suficientes levantam `DadosInsuficientes`; formatação numérica fixa |
+| `constantes.py` | `propriedades_liquido`, `l_mistura_kj_kg`, `l_puro_kj_kg`, `pressao_vapor_agua_kpa`, `pressao_vapor_antoine_kpa`, `t_critico_95`, `l_r_watts` | implementada (etapa 4); justificativa: propriedades físicas com fonte, separadas dos cálculos de ajuste |
+| `comparacao.py` | `gerar_comparacao(processadas, pasta_saida)` | implementada (etapa 4); justificativa: comparação entre filmagens não pertence a nenhuma filmagem isolada |
 | `relatorio.py` | `gravar_tabelas(pasta_saida, tabelas, origem)`, `montar_resumo_texto(info)`, `gravar_resumo_texto(pasta_saida, texto, origem)` | implementada (Prioridade 3); `origem` bloqueia escrita dentro dos dados |
 | `analisar.py` | `main`, `descobrir_filmagens`, `carregar_filmagem`, `validar_lote`, `Problema`, `ErroFilmagem` | implementadas e testadas (Prioridades 1 e 3) |
 

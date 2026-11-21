@@ -1,6 +1,11 @@
-# Dependências de execução do pipeline de análise. Python >= 3.10 (declarado; testado somente em 3.12.3).
-# Versões mínimas testadas no ambiente de desenvolvimento: numpy 2.5.4, pandas 3.0.6, matplotlib 3.11.2 (Python 3.12).
-# Os limites inferiores abaixo são estimativas de compatibilidade e ainda não foram verificados.
-numpy>=1.24
-pandas>=2.0
-matplotlib>=3.7
+# Dependências de execução do pipeline de análise.
+# Python >= 3.10. Testado em Python 3.10, 3.11 e 3.12.
+#
+# Limites inferiores verificados (suíte completa passa):
+#   Python 3.10, 3.11 e 3.12 com numpy 1.26, pandas 2.1, matplotlib 3.8, scipy 1.11.
+#
+# scipy: quantil t de Student exato para IC95% (final/constantes.py).
+numpy>=1.26
+pandas>=2.1
+matplotlib>=3.8
+scipy>=1.11

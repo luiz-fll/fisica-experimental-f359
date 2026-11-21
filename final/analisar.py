@@ -33,6 +33,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from final.comparacao import gerar_comparacao
+from final.constantes import LIQUIDOS_CONHECIDOS
 from final.massa import MIN_LEITURAS_AJUSTE
 from final.pipeline import processar_filmagem
 from final.periodos import (
@@ -270,6 +272,15 @@ def _validar_condicoes(df: pd.DataFrame, nome: str, problemas: list[Problema]) -
         if registro[coluna].strip() == "":
             problemas.append(Problema(nome, ERRO, f"campo '{coluna}' vazio"))
             valido = False
+    if registro["liquido"].strip() and registro["liquido"] not in LIQUIDOS_CONHECIDOS:
+        problemas.append(
+            Problema(
+                nome,
+                ERRO,
+                f"'liquido' desconhecido: {registro['liquido']!r}; esperado um de {list(LIQUIDOS_CONHECIDOS)}",
+            )
+        )
+        valido = False
     numeros: dict[str, float] = {}
     for coluna in ("temperatura_c", "umidade_pct"):
         try:
@@ -603,6 +614,25 @@ def main(argv: list[str] | None = None) -> int:
     processadas = sum(1 for r in resultados if r["status"] == "processada")
     falhas = len(resultados) - processadas
 
+    comparacao_status = None
+    if processadas:
+        itens = [
+            {
+                "id": r["id"],
+                "tabelas": r["resultado"]["tabelas"],
+                "condicoes": r["filmagem"]["condicoes"],
+                "massa_df": r["resultado"]["massa_df"],
+            }
+            for r in resultados
+            if r["status"] == "processada"
+        ]
+        try:
+            gerados = gerar_comparacao(itens, args.saida)
+            comparacao_status = f"{len(gerados)} arquivo(s) de comparação em {args.saida / 'comparacao'}"
+        except Exception as exc:  # isolamento: falha de comparação não derruba as filmagens
+            comparacao_status = f"falha na comparação: {type(exc).__name__}: {exc}"
+            falhas += 1
+
     print(f"Processamento de {len(resultados)} filmagem(ns) em {args.diretorio}")
     for linha in _formatar_relatorio(resultados):
         print(linha)
@@ -612,6 +642,8 @@ def main(argv: list[str] | None = None) -> int:
         if item["status"] == "processada":
             graficos = ", ".join(item["resultado"]["graficos"]) or "nenhum"
             print(f"  {item['id']}: {len(item['resultado']['arquivos'])} arquivo(s); gráficos: {graficos}")
+    if comparacao_status:
+        print(f"Comparação: {comparacao_status}")
     return 0 if falhas == 0 else 1
 
 
