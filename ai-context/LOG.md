@@ -148,3 +148,24 @@ Este arquivo é cumulativo e append-only. Cada execução de trabalho acrescenta
 
 ### Pendências
 - Interpretação científica dos casos de baixo R² e comparação entre líquidos (fora do escopo de implementação do pipeline).
+
+## 2026-11-20 — Correção de dados de coleta e reprocessamento
+
+### Alterações (dados, pelo pesquisador)
+- massa.csv: agua_dia3 (5 pts), alcool70_dia2 (8), alcool70_dia3 (9), alcool99_dia1 (6), alcool99_dia2 (14), alcool99_dia3 (9); Δ até 0,100 g.
+- mergulhadas.csv: alcool70_dia1 57→36 eventos; alcool70_dia3 37→29; ajuste pontual em alcool70_dia2.
+- Código não alterado.
+
+### Alterações (repositório de trabalho)
+- Dados substituídos pelos CSVs corrigidos; `final/resultados/` regenerado (99 arquivos).
+- `tests/test_dados_reais.py`: REF_RESUMO atualizado.
+- `CURRENT_STATE.md`, `REVISAO_QUALIDADE.md`, este LOG atualizados.
+
+### Verificações
+- `python -m pytest`: 168 passed.
+- CLI: 9 processadas, 0 falhas, código 0.
+- R² de todos os conjuntos ≥ 0,96 (antes vários < 0,8).
+- Valores de referência conferidos amostra a amostra.
+
+### Pendências
+- Interpretação científica das taxas/períodos entre líquidos; exame de resíduos de alcool70_dia3 e desvio de alcool70_dia2.

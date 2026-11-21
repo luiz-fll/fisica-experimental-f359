@@ -13,16 +13,16 @@ Ensaio
 Períodos (intervalos entre mergulhos consecutivos)
   ciclos: 20 (sem massa interpolada: 0)
   média: 25.9243 s
-  desvio-padrão amostral: 10.9754 s
-  mínimo: 8.127 s; máximo: 43.102 s
+  desvio-padrão amostral: 9.38265 s
+  mínimo: 13.457 s; máximo: 43.102 s
 
 Massa (ajuste linear global m(t) = a + b·t)
   leituras: 30; status: ok
-  b = -0.000181399 g/s
-  taxa positiva de perda: 0.000181399 g/s (0.010884 g/min)
-  R² (diagnóstico auxiliar): 0.665721
-  erro padrão de b: 2.42921e-05 g/s
-  resíduo máximo absoluto: 0.0519686 g
+  b = -0.000345003 g/s
+  taxa positiva de perda: 0.000345003 g/s (0.0207002 g/min)
+  R² (diagnóstico auxiliar): 0.963803
+  erro padrão de b: 1.26352e-05 g/s
+  resíduo máximo absoluto: 0.0245629 g
 
 Avisos de validação
   nenhum

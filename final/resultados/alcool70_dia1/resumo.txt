@@ -8,13 +8,13 @@ Condições (constantes adotadas para o ensaio, um registro por filmagem)
 Ensaio
   instante final considerado: 601.88 s
   janelas de 200 s: 3
-  mergulhos anotados: 57
+  mergulhos anotados: 36
 
 Períodos (intervalos entre mergulhos consecutivos)
-  ciclos: 56 (sem massa interpolada: 2)
-  média: 10.6061 s
-  desvio-padrão amostral: 3.32313 s
-  mínimo: 4.928 s; máximo: 16.696 s
+  ciclos: 35 (sem massa interpolada: 2)
+  média: 16.9698 s
+  desvio-padrão amostral: 6.56965 s
+  mínimo: 5.461 s; máximo: 32.278 s
 
 Massa (ajuste linear global m(t) = a + b·t)
   leituras: 30; status: ok
@@ -25,7 +25,7 @@ Massa (ajuste linear global m(t) = a + b·t)
   resíduo máximo absoluto: 0.0345052 g
 
 Avisos de validação
-  - mergulhadas.csv: 4 mergulho(s) fora do intervalo de massa.csv [20.027, 600.015] s, linhas [2, 3, 4, 58]
+  - mergulhadas.csv: 4 mergulho(s) fora do intervalo de massa.csv [20.027, 600.015] s, linhas [2, 3, 4, 37]
 
 Gráficos
   gerado: angulo_mergulhos.png

@@ -18,11 +18,11 @@ Períodos (intervalos entre mergulhos consecutivos)
 
 Massa (ajuste linear global m(t) = a + b·t)
   leituras: 30; status: ok
-  b = -0.000104909 g/s
-  taxa positiva de perda: 0.000104909 g/s (0.00629453 g/min)
-  R² (diagnóstico auxiliar): 0.944394
-  erro padrão de b: 4.81079e-06 g/s
-  resíduo máximo absoluto: 0.0104143 g
+  b = -0.000117701 g/s
+  taxa positiva de perda: 0.000117701 g/s (0.00706206 g/min)
+  R² (diagnóstico auxiliar): 0.97409
+  erro padrão de b: 3.62772e-06 g/s
+  resíduo máximo absoluto: 0.0116974 g
 
 Avisos de validação
   nenhum
